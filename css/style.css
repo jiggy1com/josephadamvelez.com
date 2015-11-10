@@ -1,0 +1,346 @@
+/********************
+defaults
+********************/
+
+body{
+	margin-top: 51px;
+	color: #666;
+}
+
+a{
+	/*color: #333;*/
+	color: #ff9900;
+}
+a:hover{
+	/*color: #666;*/
+	color: #ffbb2a;
+}
+
+h1{
+	font-family: 'Poiret One';
+	font-size: 40px;
+	margin-bottom: 30px;
+	font-weight: bold;
+	/*color: #333;*/
+	color: #ff9900;
+}
+
+h3 .help-block{
+	font-size: 14px;
+}
+
+.alert{
+	display: none;
+}
+
+article:nth-child(odd){
+	background-color: #eeeeee;
+}
+
+section{
+	padding: 0px 0px 30px 0px;
+}
+
+/********************
+nav
+********************/
+.nav .fb-like{
+	padding: 15px;
+}
+
+
+/********************
+intro
+********************/
+
+#intro section{
+	padding: 0px;
+}
+
+#intro .jumbotron{
+	background-position: center center;
+	background-repeat: no-repeat;
+	background-size: cover;
+	margin-bottom: 0px;
+}
+
+#intro .jumbotron .container,
+#intro .jumbotron .container-fluid{
+	height: 100%;
+}
+
+#intro .jumbotron .container .row,
+#intro .jumbotron .container-fluid .row{
+	height: 100%;
+}
+
+#intro .vertical-align{
+	position: relative;
+	top: 50%;
+	transform: translateY(-50%);
+}
+
+#intro .intro-wrapper{
+	z-index: 1;
+	position: absolute;
+	background-color: #000;
+	width: 100%;
+	opacity: .5;
+	-webkit-opacity: .5;
+	-khtml-opacity: 0.5;
+	-moz-opacity:0.5;
+	filter: alpha(opacity=50);
+	-ms-filter:"progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
+}
+
+#intro .jumbotron h1,
+#intro .jumbotron h2,
+#intro .jumbotron h3{
+	font-family: 'Poiret One';
+	font-weight: normal;
+	color: #fff;
+	text-shadow: 5px 5px 20px #000;
+	position: relative;
+	z-index: 2;
+
+}
+
+
+/********************
+about
+********************/
+#about strong{
+	display: block;
+}
+
+/********************
+skills
+********************/
+#skills ul{
+	list-style: none;
+	margin: 0px;
+	padding: 0px;
+}
+
+#skills ul li{
+	padding: 2px 0px;
+}
+
+#skills ul li .rating-selected{
+	color: #ffbb2a;
+}
+#skills ul li .rating-not-selected{
+	color: #ccc;
+}
+
+/********************
+resume
+********************/
+#resume h3{
+	padding-top: 30px;
+	border-top: solid 1px #ccc;
+}
+#resume h4 span{
+	float: right;
+}
+
+/********************
+portfolio
+********************/
+
+#portfolio-items img{
+	display: block;
+	margin: 0px auto 10px auto;
+	max-width: 100%;
+}
+#portfolio-items div{
+	margin-bottom: 30px;
+}
+#portfolio-items a{
+	text-decoration: none;
+}
+#portfolioModal .modal-title,
+#portfolioModal h3{
+	color: #ff9900;
+}
+#portfolioModal .offscreen{
+	visibility: hidden;
+	position: absolute;
+	left: -99999px;
+	top: -99999px;
+}
+#portfolioModal .technology{
+	margin: 0px 0px;
+	padding: 0px 0px 0px 20px;
+}
+#portfolioModal .website{
+	margin-top: 30px;
+}
+
+
+/********************
+social
+********************/
+#social a{
+	-webkit-transition: font-size .5s ease;
+	-moz-transition: font-size .5s ease;
+	-ms-transition: font-size .5s ease;
+	-o-transition: font-size .5s ease;
+	transition: font-size .5s ease;
+}
+#social a:hover{
+	font-size: 20px;
+}
+
+/********************
+contact
+********************/
+
+#contact img{
+	display: block;
+	margin: 0px auto 30px auto;
+}
+
+/********************
+media queries
+********************/
+
+.debug{
+	position: fixed;
+	top: 0px;
+	left: 0px;
+	padding: 5px;
+	z-index: 99999;
+}
+
+/* lg */
+@media (min-width: 1200px){
+	.debug{
+		background-color: red;
+	}
+	#intro .jumbotron{
+		background-image: url(//verysecurewebsite.r.worldssl.net/websites/josephadamvelez.com/image/home-background.jpg);
+	}
+	#intro h1{
+		font-size: 120px;
+	}
+	#intro h2{
+		font-size: 90px;
+		font-weight: bold;
+	}
+	#intro h3{
+		font-size: 60px;
+	}
+}
+
+/* md */
+@media (min-width: 992px) and (max-width: 1199px){
+	.debug{
+		background-color: white;
+	}
+	#intro .jumbotron{
+		background-image: url(//verysecurewebsite.r.worldssl.net/websites/josephadamvelez.com/image/1200_home-background.jpg);
+	}
+	#intro h1{
+		font-size: 100px;
+	}
+	#intro h2{
+		font-size: 70px;
+		font-weight: bold;
+	}
+	#intro h3{
+		font-size: 40px;
+	}
+}
+
+/* sm */
+@media (min-width: 768px) and (max-width: 991px){
+	.debug{
+		background-color: blue;
+	}
+	#intro .jumbotron{
+		background-image: url(//verysecurewebsite.r.worldssl.net/websites/josephadamvelez.com/image/1000_home-background.jpg);
+	}
+	#intro h1{
+		font-size: 100px;
+	}
+	#intro h2{
+		font-size: 70px;
+		font-weight: bold;
+	}
+	#intro h3{
+		font-size: 40px;
+	}	
+	#contact .col-xs-12:nth-child(2){
+		margin-top: 30px;
+	}
+}
+
+/* xs */
+@media (max-width: 767px){
+	.debug{
+		background-color: lime;
+	}
+	#intro .jumbotron{
+		background-image: url(//verysecurewebsite.r.worldssl.net/websites/josephadamvelez.com/image/800_home-background.jpg);
+	}
+	#intro h1{
+		font-size: 50px;
+	}
+	#intro h2{
+		font-size: 30px;
+		font-weight: bold;
+	}
+	#intro h3{
+		font-size: 20px;
+	}
+	#about .col-xs-12:nth-child(2),
+	#contact .col-xs-12:nth-child(2){
+		margin-top: 30px;
+	}
+}
+
+/********************
+button inverse
+*******************/
+.btn-inverse {
+  color: #ffffff;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
+  background-color: #363636;
+  *background-color: #222222;
+  background-image: -moz-linear-gradient(top, #444444, #222222);
+  background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#444444), to(#222222));
+  background-image: -webkit-linear-gradient(top, #444444, #222222);
+  background-image: -o-linear-gradient(top, #444444, #222222);
+  background-image: linear-gradient(to bottom, #444444, #222222);
+  background-repeat: repeat-x;
+  border-color: #222222 #222222 #000000;
+  border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.25);
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ff444444', endColorstr='#ff222222', GradientType=0);
+  filter: progid:DXImageTransform.Microsoft.gradient(enabled=false);
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, .2);
+  -webkit-box-shadow: inset 0 1px 0 rgba(255, 255, 255, .15), 0 1px 1px rgba(0, 0, 0, .075);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .15), 0 1px 1px rgba(0, 0, 0, .075);
+}
+
+.btn-inverse:hover,
+.btn-inverse:focus,
+.btn-inverse:active,
+.btn-inverse.active,
+.btn-inverse.disabled,
+.btn-inverse[disabled] {
+  color: #ffffff;
+  background-color: #222222;
+  *background-color: #151515;
+  -webkit-box-shadow: inset 0 3px 5px rgba(0, 0, 0, .125);
+             box-shadow: inset 0 3px 5px rgba(0, 0, 0, .125);
+}
+
+.btn-inverse:active,
+.btn-inverse.active {
+  background-color: #080808 \9;
+}
+
+.btn-inverse.active {
+  color: rgba(255, 255, 255, 0.75);
+}
