@@ -8,20 +8,22 @@ var navModule = (function(){
 				$(this).children().children().click(function(e){
 					e.preventDefault();
 					var element = $(this);
+					var el = $(element);
+					var scrollToElement = $('#'+el.attr('href'));
 					// mobile
 					if( $(window).width() < 768 ){
 						// close menu
 						$('.navbar-toggle').click();						
 						// delay is to give time for the menu to close completely (helps w/ the math below)
 						setTimeout(function(){
-							$('body').animate({
-								scrollTop : $('#'+$(element).attr('href')).offset().top - $('#nav').height()
+							$('html, body').animate({
+								scrollTop : scrollToElement.offset().top - $('#nav').height()
 							}, 500, 'linear');
 						}, 400);					
 					}else{
 						// desktop
-						$('body').animate({
-							scrollTop : $('#'+$(element).attr('href')).offset().top - $('#nav').height()
+						$('html, body').animate({
+							scrollTop : scrollToElement.offset().top - $('#nav').height()
 						}, 500, 'linear');
 					}					
 				});
@@ -30,9 +32,10 @@ var navModule = (function(){
 	}
 
 	// document.ready()
-	document.addEventListener("DOMContentLoaded", function(event) { 
+	document.addEventListener("DOMContentLoaded", function(event) {
+		console.log('DomContentLoaded');
 		DEFAULTS.init();
-	});	
+	});
 
 	return DEFAULTS
 
