@@ -33,7 +33,6 @@ var navModule = (function(){
 
 	// document.ready()
 	document.addEventListener("DOMContentLoaded", function(event) {
-		console.log('DomContentLoaded');
 		DEFAULTS.init();
 	});
 
