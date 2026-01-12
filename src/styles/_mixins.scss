@@ -1,10 +1,11 @@
+// if you change the breakpoints here also make sure to update breakpoints.ts
 $breakpointMap: (
 		mobile : (
 				min: 0px,
-				max: 428px,
+				max: 480px,
 		),
 		tablet : (
-				min: 429px,
+				min: 481px,
 				max: 1399px,
 		),
 		desktop : (
@@ -52,6 +53,22 @@ $breakpointMap: (
 		}
 	} @else if $breakpoint == 'desktop' {
 		@media ((min-width: getBreakpointMin('desktop'))) {
+			@content;
+		}
+	}
+}
+
+@mixin mediaMax($breakpoint) {
+	@if $breakpoint == 'mobile' {
+		@media (max-width: getBreakpointMax('mobile')) {
+			@content;
+		}
+	} @else if $breakpoint == 'tablet' {
+		@media ((max-width: getBreakpointMax('tablet'))) {
+			@content;
+		}
+	} @else if $breakpoint == 'desktop' {
+		@media ((max-width: getBreakpointMax('desktop'))) {
 			@content;
 		}
 	}

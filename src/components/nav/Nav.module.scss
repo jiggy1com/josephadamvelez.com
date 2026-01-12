@@ -10,31 +10,96 @@
 					rgba(0, 0, 0, .1) 0%,
 					rgba(0, 0, 0, .9) 0%,
 	);
-	display: flex;
 	width: 100vw;
-	box-shadow: 0px 0px 40px black;
+	box-shadow: 0px 0px 60px black;
 	overflow: scroll;
-
-	flex-direction: column;
+	display: flex;
+	flex-direction: row;
 	flex-wrap: wrap;
-	@include m.mediaMin('tablet') {
-		flex-direction: row;
+
+	.hamburger {
+		display: block;
+		@include mediaMin('tablet') {
+			display: none;
+		}
+
+		border: solid 1px;
+		border-radius: 10px;
+		background-color: teal;
+		padding: 18px 20px;
+		margin: 4px;
+
+		position: relative;
+
+		span {
+			position: absolute;
+			top: 8px;
+			transition: right 0.3s ease-in-out;
+
+			&.goOn {
+				right: 8px;
+			}
+
+			&.goOff {
+				right: 110%;
+			}
+		}
 	}
 
-	a {
-		color: #ccc;
-		font-weight: bold;
+	.jav {
 		padding: 15px 20px;
-		text-wrap: nowrap;
-
-
-		&:hover {
-			color: white;
-		}
-
-		&.active {
-			color: teal;
-		}
-
 	}
+
+	.navList {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+
+		overflow: hidden;
+
+		// animation for mobile styles
+		transition: max-height 0.5s ease, opacity 0.5s ease, transform 0.5s ease;
+
+		// mobile styles
+
+		@include mediaMax('mobile') {
+			max-height: 0;
+			opacity: 0;
+			transform: translateY(-20px);
+			& > * {
+				width: 100%;
+			}
+		}
+
+		&.open {
+			display: flex;
+			@include mediaMax('mobile') {
+				display: flex;
+				flex-direction: column;
+				flex-basis: 100%;
+				width: 100%;
+				max-height: 500px;
+				opacity: 1;
+				transform: translateY(0);
+			}
+		}
+
+		// end mobile styles
+
+		a {
+			color: #ccc;
+			font-weight: bold;
+			padding: 15px 20px;
+			text-wrap: nowrap;
+
+			&:hover {
+				color: teal;
+			}
+
+			&.active {
+				color: teal;
+			}
+		}
+	}
+
 }

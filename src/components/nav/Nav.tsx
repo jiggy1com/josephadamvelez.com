@@ -3,13 +3,14 @@ import { NavItem, NavItemType } from '@/components/nav/NavItem';
 import useHash from '@/hooks/useHash';
 import { useEffect, useState } from 'react';
 import { getFirstVisibleElement } from '@/utils/getFirstVisibleElement';
+import { Breakpoints } from '@/utils/breakpoints';
 
 const navItems = [
-    {
-        name: 'Joseph Adam Velez',
-        target: '#top',
-        active: true,
-    },
+    // {
+    //     name: 'Joseph Adam Velez',
+    //     target: '#top',
+    //     active: true,
+    // },
     {
         name: 'About',
         target: '#about',
@@ -51,6 +52,7 @@ const navItems = [
 export function Nav() {
     const [state, setState] = useState({
         navItems,
+        menuOpen: true,
     });
     const currentHash = useHash();
 
@@ -63,6 +65,7 @@ export function Nav() {
         setState((prevState) => {
             return {
                 ...prevState,
+                menuOpen: false,
                 navItems: [...updatedNavItems],
             };
         });
@@ -81,6 +84,7 @@ export function Nav() {
     useEffect(() => {
         const handleScrollEnd = () => {
             const el = getFirstVisibleElement();
+
             if (el) {
                 const id = `#${el.id}`;
                 setState((prevState) => {
@@ -101,11 +105,35 @@ export function Nav() {
         };
     });
 
+    const toggleMenu = () => {
+        setState((prevState) => {
+            return {
+                ...prevState,
+                menuOpen: !prevState.menuOpen,
+            };
+        });
+    };
+
     return (
         <div className={styles.nav}>
-            {state.navItems.map((navItem) => {
-                return <NavItem navItem={navItem} key={navItem.name} />;
-            })}
+            <div className={styles.hamburger} onClick={toggleMenu}>
+                <span
+                    className={`material-symbols-outlined ${state.menuOpen ? styles.goOff : styles.goOn}`}>
+                    menu
+                </span>
+                <span
+                    className={`material-symbols-outlined ${state.menuOpen ? styles.goOn : styles.goOff}`}>
+                    menu_open
+                </span>
+            </div>
+            <a href={'#top'} className={styles.jav}>
+                Joseph Adam Velez
+            </a>
+            <div className={`${styles.navList} ${state.menuOpen ? styles.open : styles.closed}`}>
+                {state.navItems.map((navItem) => {
+                    return <NavItem navItem={navItem} key={navItem.name} />;
+                })}
+            </div>
         </div>
     );
 }
