@@ -23,7 +23,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
         // Launch a headless browser instance.
         // 'headless: "new"' uses the new Headless mode.
-        // @ts-ignore
+        // @ts-expect-error - just a js version
         browser = await puppeteer.launch({ headless: 'new' });
         const page = await browser.newPage();
         const dimensions = req.query.mobile ? mobileViewport : desktopViewport;

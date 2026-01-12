@@ -106,6 +106,12 @@ export function SideProjects() {
         },
     ];
 
+    const p1 = `Here are some of my own personal projects I've worked on over the years.
+                            I feel that side projects are a great way to learn new technologies and
+                            improve my skills.`;
+    const p2 = `In some cases I've kept the repository private for security purposes.`;
+    const p3 = `Enjoy!`;
+
     return (
         <Section id={'side-projects'}>
             <article>
@@ -116,13 +122,9 @@ export function SideProjects() {
 
                 <div className={styles.sideProjectList}>
                     <div>
-                        <p>
-                            Here are some of my own personal projects I've worked on over the years.
-                            I feel that side projects are a great way to learn new technologies and
-                            improve my skills.
-                        </p>
-                        <p>In some cases I've kept the repository private for security purposes.</p>
-                        <p>Enjoy!</p>
+                        <p>{p1}</p>
+                        <p>{p2}</p>
+                        <p>{p3}</p>
                     </div>
                     {projectsList.map((project) => {
                         return (

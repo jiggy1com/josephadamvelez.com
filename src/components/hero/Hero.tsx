@@ -1,15 +1,14 @@
-import styles from './Hero.module.scss'
-import Image from 'next/image'
-import heroBackground from '../../../public/images/home-background.jpg'
-import {fontPoiretOne} from "@/utils/fonts";
-import {Section} from "@/components/section/Section";
+import styles from './Hero.module.scss';
+import Image from 'next/image';
+import heroBackground from '../../../public/images/home-background.jpg';
+import { fontPoiretOne } from '@/utils/fonts';
+import { Section } from '@/components/section/Section';
 
 export function Hero() {
-
     const heroContent = `${styles.heroContent} ${fontPoiretOne.className}`;
 
     return (
-        <Section id={"hero"} className={styles.hero}>
+        <Section id={'hero'} className={styles.hero}>
             <div className={styles.bgWrap}>
                 <Image
                     alt="Mountains"

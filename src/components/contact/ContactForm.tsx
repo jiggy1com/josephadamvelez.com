@@ -49,7 +49,7 @@ export function ContactForm(): JSX.Element {
     const validateForm = () => {
         let isValid = true;
         Object.keys(state.formData).forEach((key) => {
-            if ((state.formData as any)[key] === '') {
+            if ((state.formData as never)[key] === '') {
                 isValid = false;
             }
         });

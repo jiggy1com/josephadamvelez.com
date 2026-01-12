@@ -1,20 +1,22 @@
-import React, {useEffect, useRef, useState} from "react";
-import useHash from "@/hooks/useHash";
-import {useInView} from "react-intersection-observer";
+import React, { useRef } from 'react';
 
 type useInViewOptions = {
     id: string; // Unique identifier for the element being observed
     rootMargin?: string;
     threshold?: number;
     triggerOnce?: boolean;
-}
+};
 
-export function Section({children, id, className, ...rest}: {
+export function Section({
+    children,
+    id,
+    className,
+    ...rest
+}: {
     children: React.ReactNode;
-    id: string,
-    className?: string
+    id: string;
+    className?: string;
 }) {
-
     // const currentHash = useHash()
     // const [state, setState] = useState({
     //
@@ -100,9 +102,7 @@ export function Section({children, id, className, ...rest}: {
 
     return (
         <section id={id} ref={ref} className={className}>
-            <article>
-                {children}
-            </article>
+            <article>{children}</article>
         </section>
-    )
+    );
 }
