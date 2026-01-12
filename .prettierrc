@@ -1,0 +1,22 @@
+{
+  "arrowParens": "always",
+  "htmlWhitespaceSensitivity": "ignore",
+  "bracketSameLine": true,
+  "bracketSpacing": true,
+  "endOfLine": "lf",
+  "printWidth": 100,
+  "quoteProps": "as-needed",
+  "singleQuote": true,
+  "tabWidth": 4,
+  "trailingComma": "all",
+  "overrides": [
+    {
+      "files": [
+        "*.jsonc"
+      ],
+      "options": {
+        "trailingComma": "none"
+      }
+    }
+  ]
+}

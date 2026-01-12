@@ -1,0 +1,17 @@
+.skillsList {
+	display: flex;
+	gap: 1em;
+	flex-wrap: wrap;
+
+
+	div {
+		flex: 1 1 calc(50% - 1em);
+		@include m.mediaMin('tablet') {
+			flex: 1 1 calc(25% - 1em);
+		}
+	}
+}
+
+.heading {
+	margin: 30px auto;
+}
