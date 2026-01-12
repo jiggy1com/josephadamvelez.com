@@ -1,13 +1,13 @@
-import {Html, Head, Main, NextScript} from "next/document";
-import {fontUbuntu} from "@/utils/fonts";
+import { Head, Html, Main, NextScript } from 'next/document';
+import { fontUbuntu } from '@/utils/fonts';
 
 export default function Document() {
     return (
         <Html lang="en" className={fontUbuntu.className}>
-            <Head/>
+            <Head />
             <body>
-            <Main/>
-            <NextScript/>
+                <Main />
+                <NextScript />
             </body>
         </Html>
     );

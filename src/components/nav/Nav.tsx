@@ -54,10 +54,6 @@ export function Nav() {
     });
     const currentHash = useHash();
 
-    useEffect(() => {
-        updateActiveNavItem();
-    }, [currentHash]);
-
     const updateActiveNavItem = () => {
         const updatedNavItems = state.navItems.map((navItem) => {
             navItem.active = navItem.target === currentHash;
@@ -73,9 +69,18 @@ export function Nav() {
     };
 
     useEffect(() => {
+        state.navItems.filter((item) => {
+            if (item.active) {
+                if (item.target !== currentHash) {
+                    updateActiveNavItem();
+                }
+            }
+        });
+    }, [currentHash]);
+
+    useEffect(() => {
         const handleScrollEnd = () => {
             const el = getFirstVisibleElement();
-            console.log('el', el);
             if (el) {
                 const id = `#${el.id}`;
                 setState((prevState) => {

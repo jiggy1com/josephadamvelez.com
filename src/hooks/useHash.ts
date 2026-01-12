@@ -1,7 +1,7 @@
 'use client';
 
-import {useState, useEffect} from 'react';
-import {useParams} from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 
 const useHash = () => {
     // Ensure this runs only on the client side
@@ -17,7 +17,7 @@ const useHash = () => {
         window.addEventListener('hashchange', handleHashChange);
 
         // Update hash if params change (covering next/link clicks)
-        setHash(typeof window !== 'undefined' ? window.location.hash : '');
+        // setHash(typeof window !== 'undefined' ? window.location.hash : '');
 
         return () => {
             window.removeEventListener('hashchange', handleHashChange);

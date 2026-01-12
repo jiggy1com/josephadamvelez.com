@@ -1,6 +1,5 @@
 import { H1 } from '@/components/heading/H1';
 import { Section } from '@/components/section/Section';
-import { TempComponent } from '@/components/temp/TempComponent';
 
 export function Portfolio() {
     return (

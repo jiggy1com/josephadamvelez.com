@@ -1,34 +1,31 @@
-import {IncomingMessage} from "node:http";
-
-const nodemailer = require('nodemailer');
-import {MailObject} from "@/services/ApiService";
-import type {NextApiRequest, NextApiResponse} from "next";
+// @ts-expect-error IDE can not find nodemailer, but it's there
+import nodemailer from 'nodemailer';
+import { MailObject } from '@/services/ApiService';
+import type { NextApiRequest, NextApiResponse } from 'next';
 
 type Envelope = {
-    from: string,
-    to: string[],
-}
+    from: string;
+    to: string[];
+};
 
 type SendMailResponse = {
-    envelope: Envelope,
-    messageId: string,
-    response: string,
-}
+    envelope: Envelope;
+    messageId: string;
+    response: string;
+};
 
 export default function Contact(req: NextApiRequest, res: NextApiResponse) {
-
     const body = req.body;
-    const bodyKeys = body ? Object.keys(body) : [] as string[]
+    const bodyKeys = body ? Object.keys(body) : ([] as string[]);
     const mailObject = new MailObject();
 
     let text = '';
     let html = '';
 
     bodyKeys.forEach((key: string) => {
-        text = `${text} ${key}: ${(body as Record<string, any>)[key]}` + "\n\n";
-        html = `${html}<p>${key}: ${(body as Record<string, any>)[key]}</p>`;
+        text = `${text} ${key}: ${(body as Record<string, never>)[key]}` + '\n\n';
+        html = `${html}<p>${key}: ${(body as Record<string, never>)[key]}</p>`;
     });
-
 
     const mailOptions = {
         from: mailObject.smtpUser,
@@ -45,8 +42,8 @@ export default function Contact(req: NextApiRequest, res: NextApiResponse) {
         secure: false, // secure:true for port 465, secure:false for port 587
         auth: {
             user: mailObject.smtpUser,
-            pass: mailObject.smtpPass
-        }
+            pass: mailObject.smtpPass,
+        },
     });
 
     transporter.sendMail(mailOptions, function (err: Error, info: SendMailResponse) {
@@ -57,11 +54,11 @@ export default function Contact(req: NextApiRequest, res: NextApiResponse) {
                 message: 'An error occurred.',
                 err: err,
                 form: req.body,
-            })
+            });
         } else {
             const returnThis = {
                 messageId: info.messageId,
-                response: info.response
+                response: info.response,
             };
             // resolve(returnThis);
             res.status(200).json({
@@ -69,8 +66,7 @@ export default function Contact(req: NextApiRequest, res: NextApiResponse) {
                 message: 'Message sent!',
                 form: req.body,
                 info: returnThis,
-            })
+            });
         }
     });
-
 }

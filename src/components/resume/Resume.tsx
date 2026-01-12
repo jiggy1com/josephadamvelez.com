@@ -1,16 +1,15 @@
-import {H1} from "@/components/heading/H1";
-import {Section} from "@/components/section/Section";
-import {TempComponent} from "@/components/temp/TempComponent";
-import {ResumeItem} from "@/components/resume/ResumeItem";
+import { H1 } from '@/components/heading/H1';
+import { Section } from '@/components/section/Section';
+import { ResumeItem } from '@/components/resume/ResumeItem';
 
 export function Resume() {
-
     const resumeConfig = [
         {
             date: 'Jan 2016 - Present',
             title: 'Lead Software Engineer (PHP / Front-end)',
             company: 'CBS Interactive / Paramount, San Francisco, CA',
-            subheading: 'CBS Interactive provides a global audience access to show content including cast, clips, stories, and online streaming of your favorite CBS shows. ',
+            subheading:
+                'CBS Interactive provides a global audience access to show content including cast, clips, stories, and online streaming of your favorite CBS shows. ',
             responsibilities: [
                 `Manage multiple teams by facilitating their needs within and across other front-end, back-end, tracking and international teams.`,
                 `Team focus includes domestic and international purchase flow, account management, A/B testing, internal Customer Service Tool and Employment Benefits site.`,
@@ -30,7 +29,6 @@ export function Resume() {
             company: `Surfline/Wavetrack Inc., Huntington Beach, CA Aug 2012-Nov 2015`,
             subheading: `Surfline provides the world with surf reports & forecasts including swell, wind, tide, buoy and other related weather data. Surfline's other properties, FishTrack and Buoyweather, also provide similar data, as well as fishing charts and fishing reports.`,
             responsibilities: [
-
                 `Participate in daily scrum meetings, weekly sprint planning and sprint grooming meetings.`,
                 `Develop and maintain RESTful API end points for desktop sites, mobile sites, and mobile apps.`,
                 `Develop Surfline forecast pages with JavaScript "forecast" object`,
@@ -56,7 +54,6 @@ export function Resume() {
                 `Cross browser testing`,
                 `Contest / Landing page development`,
                 `Bug fixes and Git branching`,
-
             ],
             environment: `MS SQL 2005, ColdFusion 8 & 9, Linux, Apache, Macbook Pro, SVN, Git`,
         },
@@ -66,12 +63,12 @@ export function Resume() {
             company: `SmallBizPro, Los angeles, CA`,
             subheading: `SmallBizPro enables business owners to upload, store, and access their important organizational documents, files, financials, policies & procedures, and reports. SmallBizPro also allows vendors, such as banks, to search their client directory for the purpose of pre-approving business loans.`,
             responsibilities: [
-
                 `Create the site from the ground up using Bootstrap for a mobile friendly experience`,
                 `Media Queries for specific styles on Desktop, Tablet or Phone devices`,
                 `MySQL database and relational tables setup`,
                 `Prepared statements (queries) to prevent SQL injection`,
-                `Object oriented code`, `Uploadifive integration`,
+                `Object oriented code`,
+                `Uploadifive integration`,
                 `Built-in JSON on Request for a custom API environment during Ajax requests`,
                 `Custom CMS to maintain products, events, workshops, industries, users, documents and more`,
                 `Various forms with JavaScript validation and calculations`,
@@ -101,14 +98,12 @@ export function Resume() {
             company: `Dermstore, El Segundo, CA 2008-2012`,
             subheading: `Dermstore provides a very large e-commerce system including subscription based products for the beauty industry, bulk targeted email campaigns, and various in-house developed beauty products.`,
             responsibilities: [
-
                 `Develop website and shopping cart system for the BeautyFIX brand`,
                 `Cut up and develop pixel perfect designs from PSD files`,
                 `Multiple redesign development`,
                 `Request various queries to the DBA`,
                 `Landing page development and iterations for A/B testing`,
                 `Create HTML emails and deploy to user base`,
-
             ],
             environment: `LAMP (Linux, Apache, MySQL, PHP), ColdFusion, MS SQL, SVN`,
         },
@@ -136,19 +131,20 @@ export function Resume() {
             responsibilities: [],
             environment: ``,
         },
-
     ];
 
     return (
-        <Section id={"resume"}>
+        <Section id={'resume'}>
             <article>
                 <H1>Resume</H1>
-                <button onClick={() => {
-                    window.open('/Joe-Velez-Resume-2016-Resume-Only-Detailed.pdf')
-                }}>Download
+                <button
+                    onClick={() => {
+                        window.open('/Joe-Velez-Resume-2016-Resume-Only-Detailed.pdf');
+                    }}>
+                    Download
                 </button>
                 {resumeConfig.map((item, index) => {
-                    return <ResumeItem item={item} key={index}/>
+                    return <ResumeItem item={item} key={index} />;
                 })}
             </article>
         </Section>
