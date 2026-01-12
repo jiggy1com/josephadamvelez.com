@@ -1,0 +1,78 @@
+
+.hero {
+	position: relative;
+	height: 90vh; //100vh; //90vh;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	z-index: 1;
+	text-align: center;
+
+	.bgWrap {
+		//position: fixed;
+		position: absolute;
+		top: 0;
+		left: 0;
+		height: 100%;
+		width: 100%;
+		overflow: hidden;
+		z-index: -1;
+	}
+
+	.heroContent {
+
+		width: 100%;
+		position: relative;
+		padding: 50px 0;
+
+		.contentBackground {
+			background-color: #000;
+			width: 100%;
+			opacity: .5;
+			position: absolute;
+			top: 0;
+			right: 0;
+			bottom: 0;
+			left: 0;
+			z-index: 1;
+		}
+	}
+
+	h1, h2, h3 {
+		z-index: 2;
+		position: relative;
+		text-shadow: 1px 5px 10px black;
+	}
+
+	h1 {
+		font-size: 50px;
+		@include m.media('tablet') {
+			font-size: 100px;
+		}
+		@include m.media('desktop') {
+			font-size: 120px;
+		}
+	}
+
+	h2 {
+		font-size: 35px;
+		@include m.media('tablet') {
+			font-size: 70px;;
+		}
+		@include m.media('desktop') {
+			font-size: 90px;
+		}
+	}
+
+	h3 {
+		font-size: 20px;
+		@include m.media('tablet') {
+			font-size: 40px;
+		}
+		@include m.media('desktop') {
+			font-size: 60px;
+		}
+
+	}
+}

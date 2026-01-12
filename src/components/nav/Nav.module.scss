@@ -1,0 +1,40 @@
+@import '@/styles/_mixins.scss';
+
+.nav {
+	position: fixed;
+	top: 0;
+	z-index: 2;
+
+	background: linear-gradient(
+					$buttonAngle,
+					rgba(0, 0, 0, .1) 0%,
+					rgba(0, 0, 0, .9) 0%,
+	);
+	display: flex;
+	width: 100vw;
+	box-shadow: 0px 0px 40px black;
+	overflow: scroll;
+
+	flex-direction: row;
+	flex-wrap: wrap;
+	@include m.mediaMin('desktop') {
+		flex-direction: column;
+	}
+
+	a {
+		color: #ccc;
+		font-weight: bold;
+		padding: 15px 20px;
+		text-wrap: nowrap;
+
+
+		&:hover {
+			color: white;
+		}
+
+		&.active {
+			color: teal;
+		}
+
+	}
+}

@@ -1,0 +1,61 @@
+$breakpointMap: (
+		mobile : (
+				min: 0px,
+				max: 428px,
+		),
+		tablet : (
+				min: 429px,
+				max: 1399px,
+		),
+		desktop : (
+				min: 1400px,
+				max: 9999px,
+		)
+);
+
+@function getBreakpoint($breakpoint, $type) {
+	@return map-get(map-get($breakpointMap, $breakpoint), $type);
+}
+
+@function getBreakpointMin($breakpoint) {
+	@return getBreakpoint($breakpoint, min);
+}
+
+@function getBreakpointMax($breakpoint) {
+	@return getBreakpoint($breakpoint, max);
+}
+
+@mixin media($breakpoint) {
+	@if $breakpoint == 'mobile' {
+		@media (max-width: getBreakpointMin('mobile')) {
+			@content;
+		}
+	} @else if $breakpoint == 'tablet' {
+		@media ((min-width: getBreakpointMin('tablet')) and (max-width: getBreakpointMax('tablet'))) {
+			@content;
+		}
+	} @else if $breakpoint == 'desktop' {
+		@media ((min-width: getBreakpointMin('desktop')) and (max-width: getBreakpointMax('desktop'))) {
+			@content;
+		}
+	}
+}
+
+@mixin mediaMin($breakpoint) {
+	@if $breakpoint == 'mobile' {
+		@media (min-width: getBreakpointMin('mobile')) {
+			@content;
+		}
+	} @else if $breakpoint == 'tablet' {
+		@media ((min-width: getBreakpointMin('tablet'))) {
+			@content;
+		}
+	} @else if $breakpoint == 'desktop' {
+		@media ((min-width: getBreakpointMin('desktop'))) {
+			@content;
+		}
+	}
+}
+
+$buttonAngle: 45deg;
+
