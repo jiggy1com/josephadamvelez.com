@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "pnpm puppeteer:install && next build",
+    "build-old": "pnpm puppeteer:install && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },
