@@ -27,20 +27,22 @@ export function PortfolioItem({ portfolioItem }: { portfolioItem: PortfolioItem 
     };
 
     return (
-        <div onClick={toggleModal}>
+        <>
             {state.isModalOpen && (
                 <Modal onClose={toggleModal}>
                     <PortfolioModal portfolioItem={portfolioItem} />
                 </Modal>
             )}
-
-            <Image
-                src={`/images/portfolio/${portfolioItem.folder}/285_1.png`}
-                alt={portfolioItem.siteName}
-                width={'285'}
-                height={'153'}
-            />
-            <p>{portfolioItem.siteName}</p>
-        </div>
+            <div className={styles.portfolioItem} onClick={toggleModal}>
+                <Image
+                    className={'test'}
+                    src={`/images/portfolio/${portfolioItem.folder}/285_1.png`}
+                    alt={portfolioItem.siteName}
+                    width={'285'}
+                    height={'153'}
+                />
+                <p>{portfolioItem.siteName}</p>
+            </div>
+        </>
     );
 }

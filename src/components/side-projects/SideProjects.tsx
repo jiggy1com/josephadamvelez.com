@@ -182,28 +182,6 @@ export function SideProjects() {
                         );
                     })}
                 </div>
-
-                {/*<h2>Vue SiteBuilder</h2>*/}
-
-                {/*<h2>NextJS SiteBuilder</h2>*/}
-
-                {/*<h2>First SiteBuilder (ColdFusion)</h2>*/}
-
-                {/*<h2>Bamby Bungalow</h2>*/}
-
-                {/*<h2>Flora Health Insurance</h2>*/}
-
-                {/*<a href={'https://www.florahealthinsurance.com/'} target={'_blank'}>*/}
-                {/*    https://www.florahealthinsurance.com/*/}
-                {/*</a>*/}
-
-                {/*intermittentfastingmom.com*/}
-
-                {/*The Movie Database*/}
-
-                {/*TyrosFC.com*/}
-
-                {/*https://github.com/jiggy1com/react-copy-to-clipboard*/}
             </article>
         </Section>
     );

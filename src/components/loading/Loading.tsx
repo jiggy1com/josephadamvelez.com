@@ -1,4 +1,3 @@
-// import {fontMaterialSymbolsOutlined} from "@/utils/fonts";
 import styles from './Loading.module.scss';
 
 export function Loading() {
