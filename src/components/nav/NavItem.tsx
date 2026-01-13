@@ -1,5 +1,5 @@
 import styles from './Nav.module.scss';
-import { Breakpoints } from '@/utils/breakpoints';
+import React from 'react';
 
 export type NavItemType = {
     name: string;
@@ -16,6 +16,7 @@ export function NavItem({ navItem }: NavItemProps) {
 
     const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
         event.preventDefault();
+        event.stopPropagation();
         const targetElement = document.querySelector(navItem.target);
         if (targetElement) {
             document.location.hash = navItem.target;
