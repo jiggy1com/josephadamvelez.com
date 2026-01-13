@@ -19,7 +19,7 @@
 
 	.hamburger {
 		display: block;
-		@include mediaMin('tablet') {
+		@include mediaMin('tabletLandscape') {
 			display: none;
 		}
 
