@@ -22,9 +22,6 @@
         z-index: 2;
         border-radius: 10px;
         padding: 20px;
-        //overflow: scroll;
-        //overflow: hidden;
-        //position: relative;
     }
 
     .modalContentChildren {
@@ -37,14 +34,9 @@
         width: 80vw;
         z-index: 2;
         border-radius: 10px;
-        padding: 20px;
         overflow: scroll;
-        //height: 80vh;
-        //width: 80vw;
-        padding-bottom: 30px;
-        overflow: scroll;
-        background-color: white;
-        padding-bottom: 100px;
+        padding: 20px 20px 100px 20px;
+        box-shadow: 0 0 20px 0 black;
     }
 
     .modalClose {
@@ -59,5 +51,6 @@
         width: 100%;
         z-index: 2;
         border-top: solid 1px #ccc;
+        border-radius: 0 0 10px 10px;
     }
 }

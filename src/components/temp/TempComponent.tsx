@@ -6,6 +6,5 @@ export function TempComponent() {
     // });
     //
     // useEffect(() => {}, []);
-
     return <></>;
 }

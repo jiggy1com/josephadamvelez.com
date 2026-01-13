@@ -18,50 +18,6 @@
             }
         }
 
-        &:nth-child(2) {
-            //flex-basis: 50%;
-            //@include m.mediaMin('tablet') {
-            //	flex-basis: 50%;
-            //}
-        }
-
-        //padding: 1em;
-        //border: 1px solid var(--color-border);
-        //border-radius: 10px;
-        //margin: 0 0.5em;
-        //
-        //form{
-        //	display: flex;
-        //	flex-direction: column;
-        //
-        //	label{
-        //		margin-bottom: 0.5em;
-        //		font-weight: bold;
-        //	}
-        //
-        //	input, textarea{
-        //		margin-bottom: 1em;
-        //		padding: 0.5em;
-        //		border: 1px solid var(--color-border);
-        //		border-radius: 5px;
-        //		font-size: 1em;
-        //	}
-        //
-        //	button{
-        //		align-self: flex-start;
-        //		padding: 0.5em 1em;
-        //		background-color: var(--color-primary);
-        //		color: var(--color-button-text);
-        //		border: none;
-        //		border-radius: 5px;
-        //		cursor: pointer;
-        //
-        //		&:hover{
-        //			background-color: var(--color-primary-dark);
-        //		}
-        //	}
-        //}
-
         img {
             width: 100%;
             height: auto;
@@ -72,18 +28,9 @@
     .callTextEmail {
         overflow: hidden;
         display: flex;
-        gap: 10px; // 0
+        gap: 10px;
         border-radius: 10px;
-        //background: linear-gradient($buttonAngle, black, teal, black);
         margin-top: 10px;
-
-        //transition: background-position 300ms;
-        //background-size: 200% 200%;
-        //background-position: right;
-        //
-        //&:hover {
-        //	background-position: right;
-        //}
 
         & > * {
             flex-basis: 33%;
@@ -92,14 +39,6 @@
             padding: 15px 0;
             border: solid 1px black;
             font-weight: bold;
-
-            //&:first-child {
-            //	border-radius: 10px 0 0 10px;
-            //}
-            //
-            //&:last-child {
-            //	border-radius: 0 10px 10px 0;
-            //}
         }
     }
 }

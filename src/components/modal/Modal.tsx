@@ -12,16 +12,6 @@ export function Modal({ children, onClose }: ModalProps) {
         isOpen: true,
     });
 
-    // useEffect(() => {
-    //     if (state.isOpen) {
-    //         const originalOverflow = document.body.style.overflow;
-    //         document.body.style.overflow = 'hidden';
-    //         return () => {
-    //             document.body.style.overflow = originalOverflow;
-    //         };
-    //     }
-    // }, [state.isOpen]);
-
     const toggleModal = () => {
         onClose();
         setState((prevState) => {
@@ -35,11 +25,6 @@ export function Modal({ children, onClose }: ModalProps) {
     if (!state.isOpen) {
         return null;
     }
-
-    // const handleScroll = (e: Event) => {
-    //     e.preventDefault();
-    //     e.stopPropagation();
-    // };
 
     return (
         <div className={styles.modal}>

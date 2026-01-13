@@ -47,21 +47,23 @@ export function PortfolioModal({ portfolioItem }: { portfolioItem: PortfolioItem
                 <h3>Additional Screen Shots</h3>
                 <div className={styles.additionalImages}>
                     {Array.from({ length: portfolioItem.images }, (_, i) => i + 1).map((num) => (
-                        <img
-                            key={num}
-                            src={`/images/portfolio/${portfolioItem.folder}/${num}.png`}
-                            alt={`${portfolioItem.siteName} Image ${num}`}
-                            onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setState((prevState) => {
-                                    return {
-                                        ...prevState,
-                                        currentImage: num,
-                                    };
-                                });
-                            }}
-                        />
+                        <div>
+                            <img
+                                key={num}
+                                src={`/images/portfolio/${portfolioItem.folder}/${num}.png`}
+                                alt={`${portfolioItem.siteName} Image ${num}`}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setState((prevState) => {
+                                        return {
+                                            ...prevState,
+                                            currentImage: num,
+                                        };
+                                    });
+                                }}
+                            />
+                        </div>
                     ))}
                 </div>
             </div>

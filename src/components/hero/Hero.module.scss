@@ -2,7 +2,7 @@
 
 .hero {
     position: relative;
-    height: 90vh; //100vh; //90vh;
+    height: 90vh;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -11,7 +11,6 @@
     text-align: center;
 
     .bgWrap {
-        //position: fixed;
         position: absolute;
         top: 0;
         left: 0;
