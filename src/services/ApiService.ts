@@ -1,12 +1,10 @@
 export class MailObject {
-
-    smtpUser: string | undefined
-    smtpTo: string | undefined
-    smtpPort: string | undefined
-    smtpHost: string | undefined
-    smtpPass: string | undefined
-    smtpCC: string | undefined
-
+    smtpUser: string | undefined;
+    smtpTo: string | undefined;
+    smtpPort: string | undefined;
+    smtpHost: string | undefined;
+    smtpPass: string | undefined;
+    smtpCC: string | undefined;
 
     constructor() {
         this.smtpUser = process.env.MAIL_IN_A_BOX_USERNAME;
@@ -16,8 +14,6 @@ export class MailObject {
         this.smtpHost = process.env.MAIL_IN_A_BOX_HOST;
         this.smtpPort = '587';
     }
-
-
 }
 
 // export class ApiService {

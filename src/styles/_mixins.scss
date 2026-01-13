@@ -1,82 +1,81 @@
 // if you change the breakpoints here also make sure to update breakpoints.ts
 $breakpointMap: (
-		mobile: (
-				min: 0px,
-				max: 480px,
-		),
-		mobileLandscape: (
-				min: 481px,
-				max: 780px,
-		),
-		tablet: (
-				min: 781px,
-				max: 1024px,
-		),
-		tabletLandscape: (
-				min: 1025px,
-				max: 1440px,
-		),
-		desktop: (
-				min: 1441px,
-				max: 1919px,
-		),
-		desktopWide: (
-				min: 1920px,
-				max: 9999px,
-		)
+    mobile: (
+        min: 0px,
+        max: 480px,
+    ),
+    mobileLandscape: (
+        min: 481px,
+        max: 780px,
+    ),
+    tablet: (
+        min: 781px,
+        max: 1024px,
+    ),
+    tabletLandscape: (
+        min: 1025px,
+        max: 1440px,
+    ),
+    desktop: (
+        min: 1441px,
+        max: 1919px,
+    ),
+    desktopWide: (
+        min: 1920px,
+        max: 9999px,
+    ),
 );
 
 @function getBreakpoint($breakpoint, $type) {
-	@return map-get(map-get($breakpointMap, $breakpoint), $type);
+    @return map-get(map-get($breakpointMap, $breakpoint), $type);
 }
 
 @function getBreakpointMin($breakpoint) {
-	@return getBreakpoint($breakpoint, min);
+    @return getBreakpoint($breakpoint, min);
 }
 
 @function getBreakpointMax($breakpoint) {
-	@return getBreakpoint($breakpoint, max);
+    @return getBreakpoint($breakpoint, max);
 }
 
 @mixin media($breakpoint) {
-	@if $breakpoint == 'mobile' {
-		@media (max-width: getBreakpointMin('mobile')) {
-			@content;
-		}
-	} @else if $breakpoint == 'mobileLandscape' {
-		@media ((min-width: getBreakpointMin('mobileLandscape')) and (max-width: getBreakpointMax('mobileLandscape'))) {
-			@content;
-		}
-	} @else if $breakpoint == 'tablet' {
-		@media ((min-width: getBreakpointMin('tablet')) and (max-width: getBreakpointMax('tablet'))) {
-			@content;
-		}
-	} @else if $breakpoint == 'tabletLandscape' {
-		@media ((min-width: getBreakpointMin('tabletLandscape')) and (max-width: getBreakpointMax('tabletLandscape'))) {
-			@content;
-		}
-	} @else if $breakpoint == 'desktop' {
-		@media ((min-width: getBreakpointMin('desktop')) and (max-width: getBreakpointMax('desktop'))) {
-			@content;
-		}
-	} @else if $breakpoint == 'desktopWide' {
-		@media ((min-width: getBreakpointMin('desktopWide')) and (max-width: getBreakpointMax('desktopWide'))) {
-			@content;
-		}
-	}
+    @if $breakpoint == 'mobile' {
+        @media (max-width: getBreakpointMin('mobile')) {
+            @content;
+        }
+    } @else if $breakpoint == 'mobileLandscape' {
+        @media ((min-width: getBreakpointMin('mobileLandscape')) and (max-width: getBreakpointMax('mobileLandscape'))) {
+            @content;
+        }
+    } @else if $breakpoint == 'tablet' {
+        @media ((min-width: getBreakpointMin('tablet')) and (max-width: getBreakpointMax('tablet'))) {
+            @content;
+        }
+    } @else if $breakpoint == 'tabletLandscape' {
+        @media ((min-width: getBreakpointMin('tabletLandscape')) and (max-width: getBreakpointMax('tabletLandscape'))) {
+            @content;
+        }
+    } @else if $breakpoint == 'desktop' {
+        @media ((min-width: getBreakpointMin('desktop')) and (max-width: getBreakpointMax('desktop'))) {
+            @content;
+        }
+    } @else if $breakpoint == 'desktopWide' {
+        @media ((min-width: getBreakpointMin('desktopWide')) and (max-width: getBreakpointMax('desktopWide'))) {
+            @content;
+        }
+    }
 }
 
 @mixin mediaMin($breakpoint) {
-	@media (min-width: getBreakpointMin($breakpoint)) {
-		@content;
-	}
+    @media (min-width: getBreakpointMin($breakpoint)) {
+        @content;
+    }
 }
 
 @mixin mediaMax($breakpoint) {
-	@media (max-width: getBreakpointMax($breakpoint)) {
-		@content;
-	}
+    @media (max-width: getBreakpointMax($breakpoint)) {
+        @content;
+    }
 }
 
 $buttonAngle: 45deg;
-
