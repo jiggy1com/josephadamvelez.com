@@ -1,105 +1,103 @@
 @import '@/styles/_mixins.scss';
 
 .nav {
-	position: fixed;
-	top: 0;
-	z-index: 2;
+    position: fixed;
+    top: 0;
+    z-index: 2;
 
-	background: linear-gradient(
-					$buttonAngle,
-					rgba(0, 0, 0, .1) 0%,
-					rgba(0, 0, 0, .9) 0%,
-	);
-	width: 100vw;
-	box-shadow: 0px 0px 60px black;
-	overflow: scroll;
-	display: flex;
-	flex-direction: row;
-	flex-wrap: wrap;
+    background: linear-gradient($buttonAngle, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.9) 0%);
+    width: 100vw;
+    box-shadow: 0px 0px 60px black;
+    overflow: scroll;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
 
-	.hamburger {
-		display: block;
-		@include mediaMin('tabletLandscape') {
-			display: none;
-		}
+    .hamburger {
+        display: block;
+        @include mediaMin('tabletLandscape') {
+            display: none;
+        }
 
-		border: solid 1px;
-		border-radius: 10px;
-		background-color: teal;
-		padding: 18px 20px;
-		margin: 4px;
+        border: solid 1px;
+        border-radius: 10px;
+        background-color: teal;
+        padding: 18px 20px;
+        margin: 4px;
 
-		position: relative;
+        position: relative;
 
-		span {
-			position: absolute;
-			top: 8px;
-			transition: right 0.3s ease-in-out;
+        span {
+            position: absolute;
+            top: 8px;
+            transition: right 0.3s ease-in-out;
 
-			&.goOn {
-				right: 8px;
-			}
+            &.goOn {
+                right: 8px;
+            }
 
-			&.goOff {
-				right: 110%;
-			}
-		}
-	}
+            &.goOff {
+                right: 110%;
+            }
+        }
+    }
 
-	.jav {
-		padding: 15px 20px;
-	}
+    .jav {
+        padding: 15px 20px;
+    }
 
-	.navList {
-		display: flex;
-		flex-direction: row;
-		flex-wrap: wrap;
+    .navList {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
 
-		overflow: hidden;
+        overflow: hidden;
 
-		// animation for mobile styles
-		transition: max-height 0.5s ease, opacity 0.5s ease, transform 0.5s ease;
+        // animation for mobile styles
+        transition:
+            max-height 0.5s ease,
+            opacity 0.5s ease,
+            transform 0.5s ease;
 
-		// mobile styles
+        // mobile styles
 
-		@include mediaMax('tablet') {
-			max-height: 0;
-			opacity: 0;
-			transform: translateY(-20px);
-			& > * {
-				width: 100%;
-			}
-		}
+        @include mediaMax('tablet') {
+            max-height: 0;
+            opacity: 0;
+            transform: translateY(-20px);
+            & > * {
+                width: 100%;
+            }
+        }
 
-		&.open {
-			display: flex;
-			@include mediaMax('tablet') {
-				display: flex;
-				flex-direction: column;
-				flex-basis: 100%;
-				width: 100%;
-				max-height: 500px;
-				opacity: 1;
-				transform: translateY(0);
-			}
-		}
+        &.open {
+            display: flex;
+            @include mediaMax('tablet') {
+                display: flex;
+                flex-direction: column;
+                flex-basis: 100%;
+                width: 100%;
+                max-height: 500px;
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
-		// end mobile styles
+        // end mobile styles
 
-		a {
-			color: #ccc;
-			font-weight: bold;
-			padding: 15px 20px;
-			text-wrap: nowrap;
+        a {
+            color: #ccc;
+            font-weight: bold;
+            padding: 15px 20px;
+            text-wrap: nowrap;
 
-			&:hover {
-				color: teal;
-			}
+            &:hover {
+                color: teal;
+            }
 
-			&.active {
-				color: teal;
-			}
-		}
-	}
-
+            &.active {
+                color: teal;
+            }
+        }
+    }
 }

@@ -1,12 +1,12 @@
 .footer {
-	background-color: black;
-	min-height: 500px;
-	color: white;
-	display: flex;
+    background-color: black;
+    min-height: 500px;
+    color: white;
+    display: flex;
 
-	& > * {
-		width: 100%;
-		align-content: center;
-		text-align: center;
-	}
+    & > * {
+        width: 100%;
+        align-content: center;
+        text-align: center;
+    }
 }

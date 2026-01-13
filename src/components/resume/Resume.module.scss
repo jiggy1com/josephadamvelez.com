@@ -1,59 +1,56 @@
 @import '@/styles/_mixins.scss';
 
 .resumeItem {
-	position: relative;
-	border: solid 1px black;
-	padding: 20px;
-	margin: 50px auto;
-	//background-color: #000;
-	background: linear-gradient($buttonAngle, black, teal, black);
-	color: #ccc;
-	border-radius: 10px;
-	box-shadow: 2px 2px 20px black;
+    position: relative;
+    border: solid 1px black;
+    padding: 20px;
+    margin: 50px auto;
+    //background-color: #000;
+    background: linear-gradient($buttonAngle, black, teal, black);
+    color: #ccc;
+    border-radius: 10px;
+    box-shadow: 2px 2px 20px black;
 
-	h1 {
-		display: flex;
-		gap: 1em;
-		margin-bottom: 5px;
+    h1 {
+        display: flex;
+        gap: 1em;
+        margin-bottom: 5px;
 
-		span {
-			&:nth-child(1) {
-				flex-basis: 100%;
-				font-size: 22px;
-				@include m.mediaMin('tablet') {
-					font-size: 30px;
-				}
-			}
+        span {
+            &:nth-child(1) {
+                flex-basis: 100%;
+                font-size: 22px;
+                @include m.mediaMin('tablet') {
+                    font-size: 30px;
+                }
+            }
 
-			&:nth-child(2) {
-				text-wrap: nowrap;
-				font-size: 18px;
-			}
-		}
+            &:nth-child(2) {
+                text-wrap: nowrap;
+                font-size: 18px;
+            }
+        }
+    }
 
-	}
+    p {
+        margin-bottom: 20px;
+    }
 
-	p {
-		margin-bottom: 20px;
-	}
+    h2 {
+        margin-bottom: 15px;
+        font-size: 20px;
+        @include m.mediaMin('tablet') {
+            font-size: 20px;
+        }
+    }
 
-	h2 {
-		margin-bottom: 15px;
-		font-size: 20px;
-		@include m.mediaMin('tablet') {
-			font-size: 20px;
-		}
-	}
+    ul {
+        margin: 10px;
+        margin-bottom: 30px;
 
-
-	ul {
-		margin: 10px;
-		margin-bottom: 30px;
-
-		li {
-			margin-left: 30px;
-			margin-bottom: 5px;
-		}
-	}
-
+        li {
+            margin-left: 30px;
+            margin-bottom: 5px;
+        }
+    }
 }
