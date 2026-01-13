@@ -1,3 +1,4 @@
+@import '@/styles/mixins';
 
 .hero {
 	position: relative;
@@ -47,30 +48,30 @@
 
 	h1 {
 		font-size: 50px;
-		@include m.media('tablet') {
+		@include mediaMin('tablet') {
 			font-size: 100px;
 		}
-		@include m.media('desktop') {
+		@include mediaMin('desktop') {
 			font-size: 120px;
 		}
 	}
 
 	h2 {
 		font-size: 35px;
-		@include m.media('tablet') {
+		@include mediaMin('tablet') {
 			font-size: 70px;;
 		}
-		@include m.media('desktop') {
+		@include mediaMin('desktop') {
 			font-size: 90px;
 		}
 	}
 
 	h3 {
 		font-size: 20px;
-		@include m.media('tablet') {
+		@include mediaMin('tablet') {
 			font-size: 40px;
 		}
-		@include m.media('desktop') {
+		@include mediaMin('desktop') {
 			font-size: 60px;
 		}
 
