@@ -1,0 +1,48 @@
+@import '../../styles/mixins';
+
+.portfolioList {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1em;
+
+
+	& > * {
+		cursor: pointer;
+		flex-basis: calc(50% - .5em);
+		@include mediaMin('tablet') {
+			flex-basis: calc(33% - .66em);
+		}
+		@include mediaMin('tabletLandscape') {
+			flex-basis: calc(25% - .75em);
+		}
+
+		background-color: #1a1a1a;
+		border-radius: 10px;
+		color: teal;
+		font-weight: bold;
+		text-shadow: 1px 2px black;
+
+		p {
+			padding: 10px 10px 0 10px;
+		}
+
+		img {
+			display: block;
+			margin: 0 auto 10px;
+			max-width: 100%;
+			width: 100%;
+			height: auto;
+			border-radius: 10px;
+			border: solid 2px #ccc;
+			box-shadow: 0px 10px 20px 0px teal;
+		}
+
+		a {
+			color: white;
+			display: inline-block;
+			margin-bottom: 30px;
+		}
+
+	}
+}
+

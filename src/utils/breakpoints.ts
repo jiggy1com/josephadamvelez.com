@@ -4,12 +4,24 @@ const breakpoints = {
         min: 0,
         max: 480,
     },
-    tablet: {
+    mobileLandscape: {
         min: 481,
-        max: 1399,
+        max: 780,
+    },
+    tablet: {
+        min: 781,
+        max: 1024,
+    },
+    tabletLandscape: {
+        min: 1025,
+        max: 1440,
     },
     desktop: {
-        min: 1400,
+        min: 1441,
+        max: 1919,
+    },
+    desktopWide: {
+        min: 1920,
         max: 9999,
     },
 };
@@ -39,12 +51,26 @@ export class Breakpoints {
 
     isMobile() {
         const width = window.innerWidth;
-        return width >= this.getBreakpointMin('mobile') && width <= this.getBreakpointMax('mobile');
+        return (
+            width >= this.getBreakpointMin('mobile') &&
+            width <= this.getBreakpointMax('mobileLandscape')
+        );
     }
 
     isTablet() {
         const width = window.innerWidth;
-        return width >= this.getBreakpointMin('tablet') && width <= this.getBreakpointMax('tablet');
+        return (
+            width >= this.getBreakpointMin('tablet') &&
+            width <= this.getBreakpointMax('tabletLandscape')
+        );
+    }
+
+    isTabletLandscape() {
+        const width = window.innerWidth;
+        return (
+            width >= this.getBreakpointMin('tabletLandscape') &&
+            width <= this.getBreakpointMax('tabletLandscape')
+        );
     }
 
     isDesktop() {
@@ -52,5 +78,10 @@ export class Breakpoints {
         return (
             width >= this.getBreakpointMin('desktop') && width <= this.getBreakpointMax('desktop')
         );
+    }
+
+    isDesktopWide() {
+        const width = window.innerWidth;
+        return width >= this.getBreakpointMin('desktopWide');
     }
 }

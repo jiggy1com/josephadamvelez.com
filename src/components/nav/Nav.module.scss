@@ -62,7 +62,7 @@
 
 		// mobile styles
 
-		@include mediaMax('mobile') {
+		@include mediaMax('tablet') {
 			max-height: 0;
 			opacity: 0;
 			transform: translateY(-20px);
@@ -73,7 +73,7 @@
 
 		&.open {
 			display: flex;
-			@include mediaMax('mobile') {
+			@include mediaMax('tablet') {
 				display: flex;
 				flex-direction: column;
 				flex-basis: 100%;

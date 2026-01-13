@@ -6,11 +6,12 @@ import { getFirstVisibleElement } from '@/utils/getFirstVisibleElement';
 import { Breakpoints } from '@/utils/breakpoints';
 
 const navItems = [
-    // {
-    //     name: 'Joseph Adam Velez',
-    //     target: '#top',
-    //     active: true,
-    // },
+    {
+        // name: 'Joseph Adam Velez',
+        name: '',
+        target: '#top',
+        active: false,
+    },
     {
         name: 'About',
         target: '#about',
@@ -84,7 +85,6 @@ export function Nav() {
     useEffect(() => {
         const handleScrollEnd = () => {
             const el = getFirstVisibleElement();
-
             if (el) {
                 const id = `#${el.id}`;
                 setState((prevState) => {
@@ -95,11 +95,13 @@ export function Nav() {
                     return {
                         ...prevState,
                         navItems: [...updatedNavItems],
+                        menuOpen: false,
                     };
                 });
             }
         };
         window.addEventListener('scrollend', handleScrollEnd);
+
         return () => {
             window.removeEventListener('scrollend', handleScrollEnd);
         };
