@@ -33,7 +33,7 @@ export function BruhCalendar() {
                         flex: 1,
                     }}>
                     <iframe
-                        src="https://calendar.google.com/calendar/embed?src=jiggy1com@gmail.com&src=ZTNlYjM5MjE4ODBhNDRmNWU5YWJlNDVkNDNiNzVkMjg1ODBhNTQxY2U0NTBhOThkNTEzYTQ2YWE3N2EzMWZlN0Bncm91cC5jYWxlbmRhci5nb29nbGUuY29t"
+                        src="https://calendar.google.com/calendar/embed?src=ZTNlYjM5MjE4ODBhNDRmNWU5YWJlNDVkNDNiNzVkMjg1ODBhNTQxY2U0NTBhOThkNTEzYTQ2YWE3N2EzMWZlN0Bncm91cC5jYWxlbmRhci5nb29nbGUuY29t"
                         style={{
                             border: 0,
                         }}

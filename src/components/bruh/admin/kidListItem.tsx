@@ -22,26 +22,24 @@ export function KidListItem({ kidCollection, choreList }: KidListItemProps) {
     return (
         <div>
             <h2>{kidCollection.name}</h2>
-            <ul>
-                {choreList.map((chore) => {
-                    const checked = hasChore(chore.choreid);
+            {choreList.map((chore) => {
+                const checked = hasChore(chore.choreid);
 
-                    return (
-                        <div key={chore.choreid}>
-                            <input
-                                checked={checked}
-                                type="checkbox"
-                                id={`choreId-${kidCollection.kidid}-${chore.choreid}`}
-                                name={'choreId'}
-                                value={chore.choreid}
-                            />
-                            <label htmlFor={`choreId-${kidCollection.kidid}-${chore.choreid}`}>
-                                {chore.name}
-                            </label>
-                        </div>
-                    );
-                })}
-            </ul>
+                return (
+                    <div key={chore.choreid}>
+                        <input
+                            checked={checked}
+                            type="checkbox"
+                            id={`choreId-${kidCollection.kidid}-${chore.choreid}`}
+                            name={'choreId'}
+                            value={chore.choreid}
+                        />
+                        <label htmlFor={`choreId-${kidCollection.kidid}-${chore.choreid}`}>
+                            {chore.name}
+                        </label>
+                    </div>
+                );
+            })}
         </div>
     );
 }
