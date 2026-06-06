@@ -49,8 +49,12 @@ export class Breakpoints {
         return this.breakpoints;
     }
 
+    getWindowInnerWidth() {
+        return typeof window !== 'undefined' ? window.innerWidth : 0;
+    }
+
     isMobile() {
-        const width = window.innerWidth;
+        const width = this.getWindowInnerWidth();
         return (
             width >= this.getBreakpointMin('mobile') &&
             width <= this.getBreakpointMax('mobileLandscape')
@@ -58,7 +62,7 @@ export class Breakpoints {
     }
 
     isTablet() {
-        const width = window.innerWidth;
+        const width = this.getWindowInnerWidth();
         return (
             width >= this.getBreakpointMin('tablet') &&
             width <= this.getBreakpointMax('tabletLandscape')
@@ -66,7 +70,7 @@ export class Breakpoints {
     }
 
     isTabletLandscape() {
-        const width = window.innerWidth;
+        const width = this.getWindowInnerWidth();
         return (
             width >= this.getBreakpointMin('tabletLandscape') &&
             width <= this.getBreakpointMax('tabletLandscape')
@@ -74,14 +78,28 @@ export class Breakpoints {
     }
 
     isDesktop() {
-        const width = window.innerWidth;
+        const width = this.getWindowInnerWidth();
         return (
             width >= this.getBreakpointMin('desktop') && width <= this.getBreakpointMax('desktop')
         );
     }
 
     isDesktopWide() {
-        const width = window.innerWidth;
+        const width = this.getWindowInnerWidth();
         return width >= this.getBreakpointMin('desktopWide');
+    }
+
+    getCurrentBreakpointName() {
+        const width = this.getWindowInnerWidth();
+        const entries = Object.entries(breakpoints) as [
+            keyof typeof breakpoints,
+            { min: number; max: number },
+        ][];
+        for (const [name, range] of entries) {
+            if (width >= range.min && width <= range.max) {
+                return name;
+            }
+        }
+        return null;
     }
 }
