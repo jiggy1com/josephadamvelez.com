@@ -81,7 +81,7 @@ export async function qryGetKidChoreListByKidIdGrouped(): Promise<KidChoreList[]
                                              'choreid', c.choreid,
                                              'name', c.name,
                                              'completed', kc.completed
-                                     ) order by c.name
+                                     ) order by  c.name
                              ) filter (where c.choreid is not null) as chores
                       from kid k
                                left join kidchore kc on kc.kidid = k.kidid and kc.active = true
@@ -89,6 +89,36 @@ export async function qryGetKidChoreListByKidIdGrouped(): Promise<KidChoreList[]
 
                       group by k.kidid, k.name
     ;`) as KidChoreList[];
+}
+
+export async function qryAddOrRemoveKidChore(kidid: number, choreid: number, active: boolean) {
+    const record = await sql`select *
+                             from kidchore
+                             where kidid = ${kidid}
+                               and choreid = ${choreid}`;
+    console.log('record', record, {
+        kidid,
+        choreid,
+        active,
+    });
+    if (record.length > 0) {
+        console.log('updating', kidid, choreid, active);
+        await sql`update kidchore
+                  set active    = ${active},
+                      completed = false
+                  where kidid = ${kidid}
+                    and choreid = ${choreid}`;
+    } else {
+        console.log('inserting', kidid, choreid, active);
+        await sql`insert into kidchore (kidid, choreid, active, completed)
+                  values (${kidid}, ${choreid}, true, false)`;
+    }
+}
+
+export async function qryRemoveAllKidChores() {
+    await sql`update kidchore
+              set active    = false,
+                  completed = false`;
 }
 
 // export async function qryGetKidChoreListByKidId(kidId: number) {

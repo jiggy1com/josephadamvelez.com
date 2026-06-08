@@ -19,7 +19,8 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-intersection-observer": "^10.0.0",
-    "sass": "^1.97.2"
+    "sass": "^1.97.2",
+    "turbo": "2.9.16"
   },
   "devDependencies": {
     "@types/node": "^20",
