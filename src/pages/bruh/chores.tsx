@@ -14,6 +14,7 @@ export async function getServerSideProps() {
 
     return {
         props: {
+            title: 'Bruh Chores',
             data: {
                 kidChoreListByKidIdGrouped,
             },

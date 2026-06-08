@@ -1,17 +1,10 @@
 import { KidList } from '@/components/bruh/admin/kidList';
 import { qryGetChoreList, qryGetKidChoreListByKidIdGrouped } from '@/utils/adminQueries';
 import { BruhNav } from '@/components/bruh/BruhNav';
-
-export type BruhAdminIndexProps = {
-    data: {
-        choreList: Awaited<ReturnType<typeof qryGetChoreList>>;
-        kidChoreListByKidIdGrouped: Awaited<ReturnType<typeof qryGetKidChoreListByKidIdGrouped>>;
-    };
-};
+import { BruhAdminChoresProvider } from '@/providers/BruhAdminChoresContext';
 
 export async function getServerSideProps() {
     const choreList = await qryGetChoreList();
-
     const kidChoreListByKidIdGrouped = await qryGetKidChoreListByKidIdGrouped();
 
     return {
@@ -24,11 +17,21 @@ export async function getServerSideProps() {
     };
 }
 
-export default function BruhAdminIndex({ data }: BruhAdminIndexProps) {
+export default function BruhAdminIndex({
+    data,
+}: {
+    data: Awaited<ReturnType<typeof getServerSideProps>>['props']['data'];
+}) {
     return (
         <div>
             <BruhNav />
-            <KidList data={data} />;
+            <BruhAdminChoresProvider
+                data={{
+                    choreList: data.choreList,
+                    kidChoreListByKidIdGrouped: data.kidChoreListByKidIdGrouped,
+                }}>
+                <KidList />;
+            </BruhAdminChoresProvider>
         </div>
     );
     // return <pre>{JSON.stringify(data, null, 2)}</pre>;

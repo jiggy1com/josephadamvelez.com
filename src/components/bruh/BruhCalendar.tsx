@@ -1,4 +1,9 @@
 export function BruhCalendar() {
+    const color = 'B3E2F4';
+    const src =
+        'ZTNlYjM5MjE4ODBhNDRmNWU5YWJlNDVkNDNiNzVkMjg1ODBhNTQxY2U0NTBhOThkNTEzYTQ2YWE3N2EzMWZlN0Bncm91cC5jYWxlbmRhci5nb29nbGUuY29t';
+    const calendarUrl = `https://calendar.google.com/calendar/embed?color=%23${color}&src=${src}`;
+
     return (
         <div
             style={{
@@ -33,7 +38,7 @@ export function BruhCalendar() {
                         flex: 1,
                     }}>
                     <iframe
-                        src="https://calendar.google.com/calendar/embed?src=ZTNlYjM5MjE4ODBhNDRmNWU5YWJlNDVkNDNiNzVkMjg1ODBhNTQxY2U0NTBhOThkNTEzYTQ2YWE3N2EzMWZlN0Bncm91cC5jYWxlbmRhci5nb29nbGUuY29t"
+                        src={calendarUrl}
                         style={{
                             border: 0,
                         }}

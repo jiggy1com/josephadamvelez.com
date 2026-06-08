@@ -3,63 +3,23 @@ import { NavItem, NavItemType } from '@/components/nav/NavItem';
 import useHash from '@/hooks/useHash';
 import { useEffect, useState } from 'react';
 import { getFirstVisibleElement } from '@/utils/getFirstVisibleElement';
-import { Breakpoints } from '@/utils/breakpoints';
 
-const navItems = [
-    {
-        // name: 'Joseph Adam Velez',
-        name: '',
-        target: '#top',
-        active: false,
-    },
-    {
-        name: 'About',
-        target: '#about',
-        active: false,
-    },
-    {
-        name: 'Skills',
-        target: '#skills',
-        active: false,
-    },
+export type NavProps = {
+    navItems: NavItemType[];
+    title?: string;
+};
 
-    {
-        name: 'Portfolio',
-        target: '#portfolio',
-        active: false,
-    },
-    {
-        name: 'Side Projects',
-        target: '#side-projects',
-        active: false,
-    },
-    {
-        name: 'Resume',
-        target: '#resume',
-        active: false,
-    },
-    {
-        name: 'Social',
-        target: '#social',
-        active: false,
-    },
-    {
-        name: 'Contact',
-        target: '#contact',
-        active: false,
-    },
-] as NavItemType[];
-
-export function Nav() {
+export function Nav({ navItems, title }: NavProps) {
     const [state, setState] = useState({
         navItems,
         menuOpen: true,
     });
     const currentHash = useHash();
+    const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
 
     const updateActiveNavItem = () => {
         const updatedNavItems = state.navItems.map((navItem) => {
-            navItem.active = navItem.target === currentHash;
+            navItem.active = navItem.target === currentHash || navItem.target === currentPath;
             return navItem;
         });
 
@@ -83,13 +43,14 @@ export function Nav() {
     }, [currentHash]);
 
     useEffect(() => {
+        console.log('useEffect scroll');
         const handleScrollEnd = () => {
             const el = getFirstVisibleElement();
             if (el) {
                 const id = `#${el.id}`;
                 setState((prevState) => {
                     const updatedNavItems = prevState.navItems.map((navItem) => {
-                        navItem.active = navItem.target === id;
+                        navItem.active = navItem.target === id || navItem.target === currentPath;
                         return navItem;
                     });
                     return {
@@ -129,7 +90,7 @@ export function Nav() {
                 </span>
             </div>
             <a href={'#top'} className={styles.jav}>
-                Joseph Adam Velez
+                {title ?? 'Joseph Adam Velez'}
             </a>
             <div className={`${styles.navList} ${state.menuOpen ? styles.open : styles.closed}`}>
                 {state.navItems.map((navItem) => {

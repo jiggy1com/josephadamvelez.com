@@ -1,5 +1,6 @@
 import styles from './Nav.module.scss';
 import React from 'react';
+import { useRouter } from 'next/router';
 
 export type NavItemType = {
     name: string;
@@ -12,11 +13,18 @@ type NavItemProps = {
 };
 
 export function NavItem({ navItem }: NavItemProps) {
+    const router = useRouter();
     const activeClass = navItem.active ? styles.active : '';
 
     const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
         event.preventDefault();
         event.stopPropagation();
+        const isHash = (event.target as HTMLAnchorElement).href.includes('#');
+        if (!isHash) {
+            router.push(navItem.target);
+            return;
+        }
+
         const targetElement = document.querySelector(navItem.target);
         if (targetElement) {
             document.location.hash = navItem.target;
