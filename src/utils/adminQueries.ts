@@ -141,3 +141,145 @@ export async function qryRemoveAllKidChores() {
 //                  c.name;
 //     `;
 // }
+
+export type DeviceLocationRow = {
+    deviceId: string;
+    name: string;
+    platform: string;
+    location: {
+        latitude: number;
+        longitude: number;
+        accuracy: number;
+        timestamp: string;
+    };
+    battery: number;
+    charging: boolean;
+};
+
+export async function qryGetLastKnownDeviceLocation(): Promise<DeviceLocationRow[]> {
+    return (await sql`
+        SELECT d.id             as "deviceId",
+
+               d.name,
+               d.platform,
+               json_build_object(
+                       'latitude', l.latitude,
+                       'longitude', l.longitude,
+                       'accuracy', l."horizontalAccuracy",
+                       'timestamp', l."deviceTimestamp"
+               )                AS location,
+               l."batteryLevel" AS battery,
+               l."isCharging"   AS charging
+        FROM devices d
+                 LEFT JOIN LATERAL (
+            SELECT *
+            FROM locations
+            WHERE locations."deviceId" = d.id
+            ORDER BY "deviceTimestamp" DESC
+                LIMIT 1
+    ) l
+        ON true;
+    `) as DeviceLocationRow[];
+}
+
+export type locationType = {
+    deviceId?: string;
+    latitude?: number;
+    longitude?: number;
+    altitude?: number;
+    horizontalAccuracy?: number;
+    verticalAccuracy?: number;
+    speed?: number;
+    course?: number;
+    batteryLevel?: number;
+    isCharging?: boolean;
+    platform?: string;
+    deviceModel?: string;
+    deviceName?: string;
+    systemVersion?: string;
+    deviceTimestamp?: Date;
+    receivedAt?: Date;
+    networkType?: string;
+    isMockLocation?: boolean;
+};
+
+export async function qryAddDeviceLocation({
+    deviceId,
+    latitude,
+    longitude,
+    altitude,
+    horizontalAccuracy,
+    verticalAccuracy,
+    speed,
+    course,
+    batteryLevel,
+    isCharging,
+    platform,
+    deviceModel,
+    deviceName,
+    systemVersion,
+    deviceTimestamp,
+    // receivedAt,
+    // networkType,
+    // isMockLocation,
+}: locationType) {
+    await sql`
+        INSERT INTO locations ("deviceId",
+                               latitude,
+                               longitude,
+                               altitude,
+                               "horizontalAccuracy",
+                               "verticalAccuracy",
+                               speed,
+                               course,
+                               "batteryLevel",
+                               "isCharging",
+                               platform,
+                               "deviceModel",
+                               "deviceName",
+                               "systemVersion",
+                               "deviceTimestamp"
+            -- "receivedAt",
+            -- "networkType",
+            -- "isMockLocation"
+        )
+        VALUES (${deviceId},
+                ${latitude},
+                ${longitude},
+                ${altitude},
+                ${horizontalAccuracy},
+                ${verticalAccuracy},
+                ${speed},
+                ${course},
+                ${batteryLevel},
+                ${isCharging},
+                ${platform},
+                ${deviceModel},
+                ${deviceName},
+                ${systemVersion},
+                ${deviceTimestamp}
+                   -- receivedAt,
+                   -- networkType,
+                   -- isMockLocation
+               )
+    `;
+
+    // const x = {
+    //     altitude: 0,
+    //     appVersion: '1.0.0',
+    //     battery: -1,
+    //     charging: false,
+    //     course: 0,
+    //     deviceId: 'F4CA2524-DE7F-40B0-9A1A-CEBDCF4F324D',
+    //     deviceModel: 'iPhone',
+    //     deviceName: 'iPhone 17 Pro',
+    //     horizontalAccuracy: 5,
+    //     latitude: 37.785834,
+    //     longitude: -122.406417,
+    //     platform: 'iOS',
+    //     speed: 0,
+    //     systemVersion: '26.2',
+    //     timestamp: '2026-07-31T15:13:44Z',
+    //     verticalAccuracy: -1,
+    // };
+}

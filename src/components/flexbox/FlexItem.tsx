@@ -18,6 +18,10 @@ type FlexItemProps = {
         | 'end'
         | 'self-start'
         | 'self-end';
+    height?: string;
+    minHeight?: string;
+    width?: string;
+    minWidth?: string;
     className?: string;
 };
 
@@ -29,6 +33,10 @@ export function FlexItem({
     flexGrow,
     flexShrink,
     alignSelf,
+    height,
+    minHeight,
+    width,
+    minWidth,
 }: FlexItemProps) {
     const styles = {
         order,
@@ -36,6 +44,10 @@ export function FlexItem({
         flexGrow,
         flexShrink,
         alignSelf,
+        height,
+        minHeight,
+        width,
+        minWidth,
     };
 
     const classNameList = className + fontUbuntu.className;

@@ -11,17 +11,19 @@ export function Section({
     children,
     id,
     className,
+    removeArticle,
     ...rest
 }: {
     children: React.ReactNode;
     id: string;
     className?: string;
+    removeArticle?: boolean;
 }) {
     const ref = useRef(null);
 
     return (
         <section id={id} ref={ref} className={className}>
-            <article>{children}</article>
+            {removeArticle ? children : <article>{children}</article>}
         </section>
     );
 }

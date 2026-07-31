@@ -40,6 +40,10 @@ type FlexProps = {
     gap?: string;
     rowGap?: string;
     columnGap?: string;
+    height?: string;
+    minHeight?: string;
+    width?: string;
+    minWidth?: string;
     className?: string;
 };
 
@@ -53,6 +57,10 @@ export function Flex({
     gap,
     rowGap,
     columnGap,
+    height,
+    minHeight,
+    width,
+    minWidth,
     className,
 }: FlexProps) {
     const styles = {
@@ -65,6 +73,10 @@ export function Flex({
         gap,
         rowGap,
         columnGap,
+        height,
+        minHeight,
+        width,
+        minWidth,
     };
     return (
         <div style={styles} className={className}>
