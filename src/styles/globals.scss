@@ -138,14 +138,16 @@ body {
 				padding: 15px 20px;
 
 				&:nth-child(odd) {
+					background-color: Canvas;
+					color: CanvasText;
+				}
+
+				&:nth-child(even) {
 					background-color: #ccc;
 					color: black;
 				}
 
-				&:nth-child(even) {
-					background-color: Canvas;
-					color: CanvasText;
-				}
+
 			}
 
 		}
