@@ -15,7 +15,7 @@ export function KidList() {
         <>
             <Section id={'kid-list'}>
                 <article>
-                    <h1>Bruh Chores Admin </h1>
+                    <h1>Bruh Admin Chores </h1>
                     <button className={'btn'} onClick={removeAllKidChores}>
                         Clear All Assignments
                     </button>

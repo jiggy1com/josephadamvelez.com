@@ -52,6 +52,40 @@ export async function qryGetChoreList() {
     `;
 }
 
+export async function qryGetChoreById(choreid: number): Promise<Chore | undefined> {
+    const rows = (await sql`
+        select choreid,
+               name
+        from chore
+        where choreid = ${choreid}
+    `) as Chore[];
+    return rows[0];
+}
+
+export async function qryAddChore(name: string) {
+    return sql`
+        insert into chore (name)
+        values (${name})
+        returning choreid, name
+    `;
+}
+
+export async function qryUpdateChore(choreid: number, name: string) {
+    return sql`
+        update chore
+        set name = ${name}
+        where choreid = ${choreid}
+        returning choreid, name
+    `;
+}
+
+export async function qryDeleteChore(choreid: number) {
+    return sql`
+        delete from chore
+        where choreid = ${choreid}
+    `;
+}
+
 export async function qryGetKidChoreList() {
     return sql`
         select kc.kidchoreid,

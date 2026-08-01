@@ -48,6 +48,7 @@ export function BruhMap({ getLastKnownDeviceLocation }: BruhMapProps) {
                         </button>
                     </div>
                     <MapContainer
+                        // @ts-expect-error react-leaflet v5 types omit center/zoom (see react-leaflet#1119)
                         center={HOME_LOCATION}
                         zoom={15}
                         style={{ height: '100%', width: '100%' }}>

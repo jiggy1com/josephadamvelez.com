@@ -81,13 +81,28 @@ export const bruhNavItems = [
 
 export const bruhAdminNavItems = [
     {
+        name: 'Bruh',
+        target: '/bruh',
+        active: false,
+    },
+    {
+        name: 'Bruh Admin',
+        target: '/bruh/admin',
+        active: false,
+    },
+    {
         name: 'Profiles',
         target: '/bruh/admin/profiles',
         active: false,
     },
     {
         name: 'Chores',
-        target: '/bruh/admin/chores',
+        target: '/bruh/admin/chores/list',
+        active: false,
+    },
+    {
+        name: 'Chores Assignment',
+        target: '/bruh/admin/chores-assignment',
         active: false,
     },
     {

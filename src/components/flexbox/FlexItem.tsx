@@ -1,5 +1,3 @@
-import { fontUbuntu } from '@/utils/fonts';
-
 type FlexItemProps = {
     children: React.ReactNode;
     order?: number;
@@ -50,10 +48,8 @@ export function FlexItem({
         minWidth,
     };
 
-    const classNameList = className + fontUbuntu.className;
-
     return (
-        <div style={styles} className={classNameList}>
+        <div style={styles} className={className}>
             {children}
         </div>
     );

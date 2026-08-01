@@ -9,9 +9,9 @@ type useInViewOptions = {
 
 export function Section({
     children,
-    id,
+    id = '',
     className,
-    removeArticle,
+    removeArticle = false,
     ...rest
 }: {
     children: React.ReactNode;
