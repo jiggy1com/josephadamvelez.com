@@ -1,3 +1,7 @@
+import { Flex } from '@/components/flexbox/Flex';
+import { FlexItem } from '@/components/flexbox/FlexItem';
+import { VIEWPORT_HEIGHT_MINUS_NAV } from '@/constants/layout';
+
 export function BruhCalendar() {
     const color = 'B3E2F4';
     const src =
@@ -5,59 +9,34 @@ export function BruhCalendar() {
     const calendarUrl = `https://calendar.google.com/calendar/embed?color=%23${color}&src=${src}`;
 
     return (
-        <div
-            style={{
-                height: '100vh',
-                display: 'flex',
-                flexDirection: 'column',
-            }}>
-            {/*<div>*/}
+        <Flex flexDirection="column" height={VIEWPORT_HEIGHT_MINUS_NAV}>
+            {/*<FlexItem>*/}
             {/*    <a className="weatherwidget-io" href="https://forecast7.com/en/40d71n74d01/new-york/"*/}
             {/*       data-label_1="Odessa, FL" data-label_2="Weather" data-theme="original">Odessa, FL Weather</a>*/}
             {/*    <script>*/}
             {/*        !function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src='https://weatherwidget.io/js/widget.min.js';fjs.parentNode.insertBefore(js,fjs);}}(document,'script','weatherwidget-io-js');*/}
             {/*    </script>*/}
-            {/*</div>*/}
-            <div
-                style={{
-                    display: 'flex',
-                    flex: 1,
-                }}>
-                <div
-                    style={{
-                        flex: '0 0 auto',
-                    }}>
-                    {/*Elfsight Weather | Untitled Weather */}
-                    <script src="https://elfsightcdn.com/platform.js" async></script>
-                    <div
-                        className="elfsight-app-92052c96-2b03-40c6-a35e-896ca0da256a"
-                        data-elfsight-app-lazy></div>
-                </div>
-                <div
-                    style={{
-                        flex: 1,
-                    }}>
-                    <iframe
-                        src={calendarUrl}
-                        style={{
-                            border: 0,
-                        }}
-                        width="100%"
-                        height="100%"
-                        frameBorder="0"
-                        scrolling="no"></iframe>
-                    {/*Disable Touch UI*/}
-                    {/*<div*/}
-                    {/*    style={{*/}
-                    {/*        position: 'absolute',*/}
-                    {/*        top: 0,*/}
-                    {/*        left: 0,*/}
-                    {/*        right: 0,*/}
-                    {/*        bottom: 0,*/}
-                    {/*        backgroundColor: 'rgba(255, 255, 255, 0.5)',*/}
-                    {/*    }}></div>*/}
-                </div>
-            </div>
-        </div>
+            {/*</FlexItem>*/}
+            <FlexItem flexGrow={1} minHeight="0">
+                <Flex height="100%">
+                    <FlexItem>
+                        {/*Elfsight Weather | Untitled Weather */}
+                        <script src="https://elfsightcdn.com/platform.js" async></script>
+                        <div
+                            className="elfsight-app-92052c96-2b03-40c6-a35e-896ca0da256a"
+                            data-elfsight-app-lazy></div>
+                    </FlexItem>
+                    <FlexItem flexGrow={1}>
+                        <iframe
+                            src={calendarUrl}
+                            style={{ border: 0 }}
+                            width="100%"
+                            height="100%"
+                            frameBorder="0"
+                            scrolling="no"></iframe>
+                    </FlexItem>
+                </Flex>
+            </FlexItem>
+        </Flex>
     );
 }

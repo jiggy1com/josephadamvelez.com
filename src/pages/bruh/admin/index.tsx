@@ -1,38 +1,54 @@
-import { KidList } from '@/components/bruh/admin/kidList';
-import { qryGetChoreList, qryGetKidChoreListByKidIdGrouped } from '@/utils/adminQueries';
 import { BruhNav } from '@/components/bruh/BruhNav';
-import { BruhAdminChoresProvider } from '@/providers/BruhAdminChoresContext';
+import { Section } from '@/components/section/Section';
+import { H1 } from '@/components/heading/H1';
+import { Flex } from '@/components/flexbox/Flex';
+import { FlexItem } from '@/components/flexbox/FlexItem';
+import { Grid } from '@/components/grid/Grid';
+import { GridItem } from '@/components/grid/GridItem';
+import { bruhAdminNavItems } from '@/config/NavConfig';
+import { useRouter } from 'next/router';
+import { BreakpointName, useBreakpoint } from '@/hooks/useBreakpoint';
 
-export async function getServerSideProps() {
-    const choreList = await qryGetChoreList();
-    const kidChoreListByKidIdGrouped = await qryGetKidChoreListByKidIdGrouped();
+const columnsByBreakpoint: Record<BreakpointName, number> = {
+    mobile: 1,
+    mobileLandscape: 2,
+    tablet: 2,
+    tabletLandscape: 4,
+    desktop: 4,
+    desktopWide: 4,
+};
 
-    return {
-        props: {
-            data: {
-                choreList,
-                kidChoreListByKidIdGrouped,
-            },
-        },
-    };
-}
-
-export default function BruhAdminIndex({
-    data,
-}: {
-    data: Awaited<ReturnType<typeof getServerSideProps>>['props']['data'];
-}) {
+export default function BruhAdminIndex() {
+    const router = useRouter();
+    const breakpoint = useBreakpoint();
+    const columns = columnsByBreakpoint[breakpoint];
     return (
-        <div>
+        <>
             <BruhNav />
-            <BruhAdminChoresProvider
-                data={{
-                    choreList: data.choreList,
-                    kidChoreListByKidIdGrouped: data.kidChoreListByKidIdGrouped,
-                }}>
-                <KidList />;
-            </BruhAdminChoresProvider>
-        </div>
+            <Section id={'bruh-admin'} className={'admin-section'}>
+                <Flex>
+                    <FlexItem>
+                        <h1>Bruh Admin</h1>
+                    </FlexItem>
+                </Flex>
+            </Section>
+            <Section id={'test'} className={'admin-section'}>
+                <Grid gap={'10px'} gridTemplateColumns={`repeat(${columns}, 1fr)`}>
+                    {bruhAdminNavItems.map((navItem) => {
+                        return (
+                            <GridItem key={navItem.target}>
+                                <button
+                                    className={'full-width'}
+                                    onClick={() => {
+                                        void router.push(navItem.target);
+                                    }}>
+                                    {navItem.name}
+                                </button>
+                            </GridItem>
+                        );
+                    })}
+                </Grid>
+            </Section>
+        </>
     );
-    // return <pre>{JSON.stringify(data, null, 2)}</pre>;
 }

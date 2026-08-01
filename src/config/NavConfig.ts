@@ -56,4 +56,58 @@ export const bruhNavItems = [
         target: '/bruh/chores',
         active: false,
     },
+    {
+        name: 'Map',
+        target: '/bruh/map',
+        active: false,
+    },
+    // skylight calendar
+    // {
+    //     name: 'Rewards',
+    //     target: '/bruh/rewards',
+    //     active: false,
+    // },
+    // {
+    //     name: 'Meals',
+    //     target: '/bruh/meals',
+    //     active: false,
+    // },
+    // {
+    //     name: 'Lists',
+    //     target: '/bruh/lists',
+    //     active: false,
+    // },
+] as NavItemType[];
+
+export const bruhAdminNavItems = [
+    {
+        name: 'Bruh',
+        target: '/bruh',
+        active: false,
+    },
+    {
+        name: 'Bruh Admin',
+        target: '/bruh/admin',
+        active: false,
+    },
+    {
+        name: 'Profiles',
+        target: '/bruh/admin/profiles',
+        active: false,
+    },
+    {
+        name: 'Chores',
+        target: '/bruh/admin/chores/list',
+        active: false,
+    },
+    {
+        name: 'Chores Assignment',
+        target: '/bruh/admin/chores-assignment',
+        active: false,
+    },
+    {
+        name: 'Rewards',
+        target: '/bruh/admin/rewards',
+        active: false,
+    },
 ] as NavItemType[];
