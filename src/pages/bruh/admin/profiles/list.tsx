@@ -100,7 +100,7 @@ export default function BruhAdminProfilesList() {
                                     </GridItem>
                                     <GridItem>
                                         <button
-                                            className={'button full-width'}
+                                            className={'button button-danger full-width'}
                                             onClick={() => setPendingDelete(profile)}>
                                             Delete
                                         </button>

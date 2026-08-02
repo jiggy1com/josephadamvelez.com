@@ -125,15 +125,18 @@ export default function BruhAdminProfilesAdd() {
                         )}
                     </div>
                     <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center', margin: '10px 0 20px' }}>
-                        <SegmentedControl<Role>
-                            ariaLabel={'Role'}
-                            value={role}
-                            onChange={setRole}
-                            options={[
-                                { value: 'child', label: 'Child' },
-                                { value: 'parent', label: 'Parent' },
-                            ]}
-                        />
+                        <div>
+                            <div style={{ marginBottom: '5px', fontSize: '0.9em' }}>Role</div>
+                            <SegmentedControl<Role>
+                                ariaLabel={'Role'}
+                                value={role}
+                                onChange={setRole}
+                                options={[
+                                    { value: 'child', label: 'Child' },
+                                    { value: 'parent', label: 'Parent' },
+                                ]}
+                            />
+                        </div>
                         <Toggle checked={isAdmin} onChange={setIsAdmin} label={'Admin'} />
                     </div>
                     <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
@@ -150,6 +153,15 @@ export default function BruhAdminProfilesAdd() {
                             Save
                         </button>
                     </div>
+                    {!canSubmit && !submitting && (
+                        <p style={{ color: 'salmon', fontSize: '0.9em', marginTop: '10px' }}>
+                            {role === null
+                                ? 'Select a role (Child or Parent) to continue.'
+                                : password.length === 0
+                                  ? 'Enter a password to continue.'
+                                  : 'Password does not meet all requirements.'}
+                        </p>
+                    )}
                 </form>
             </Section>
         </>

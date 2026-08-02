@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { qryAddProfile } from '@/utils/adminQueries';
 import { generateSalt, hashPassword, validatePassword, validateUsername } from '@/utils/password';
+import { handleServerError } from '@/utils/apiErrors';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
@@ -63,7 +64,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         );
         return res.status(200).json({ success: true, data });
     } catch (e) {
-        const error = e instanceof Error ? e.message : String(e);
-        return res.status(500).json({ success: false, error });
+        handleServerError(res, 'profiles/add', e);
     }
 }

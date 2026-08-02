@@ -3,7 +3,7 @@ import { BruhChores } from '@/components/bruh/BruhChores';
 import { qryGetProfilesTasksByProfileGrouped } from '@/utils/adminQueries';
 import { ChoresProvider } from '@/providers/BruhChoresContext';
 
-export type BruhChoresProps = {
+export type BruhTasksProps = {
     data: {
         profilesWithTasks: Awaited<ReturnType<typeof qryGetProfilesTasksByProfileGrouped>>;
     };
@@ -14,7 +14,7 @@ export async function getServerSideProps() {
 
     return {
         props: {
-            title: 'Bruh Chores',
+            title: 'Bruh Tasks',
             data: {
                 profilesWithTasks,
             },
@@ -22,7 +22,7 @@ export async function getServerSideProps() {
     };
 }
 
-export default function Chores({ data }: BruhChoresProps) {
+export default function Tasks({ data }: BruhTasksProps) {
     return (
         <div>
             <BruhNav />

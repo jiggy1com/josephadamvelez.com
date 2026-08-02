@@ -51,6 +51,75 @@ export type ProfileWithTasks = {
     tasks: ProfilesTasksWithStatus[];
 };
 
+// AUTH — the only query that returns password + salt. Never call this from the client;
+// it's for the login endpoint only.
+export type ProfileForAuth = Profile & {
+    passwordHash: string;
+    salt: string;
+};
+
+// Forgot-password flow — updates the reset token by username. Returns the row so the caller
+// can decide whether to actually send an email (never leak "no such user" via the response).
+export async function qrySetForgotPasswordToken(username: string, token: string) {
+    const rows = (await sql`
+        update profiles
+        set forgot_password_token = ${token}
+        where username = ${username.toLowerCase()}
+        returning profiles_id as "profilesId", name, email
+    `) as { profilesId: number; name: string; email: string | null }[];
+    return rows[0];
+}
+
+export async function qryGetProfileByForgotPasswordToken(
+    token: string,
+): Promise<Profile | undefined> {
+    const rows = (await sql`
+        select profiles_id as "profilesId",
+               name,
+               email,
+               username,
+               is_child   as "isChild",
+               is_parent  as "isParent",
+               is_admin   as "isAdmin"
+        from profiles
+        where forgot_password_token = ${token}
+    `) as Profile[];
+    return rows[0];
+}
+
+export async function qryResetPasswordByToken(
+    token: string,
+    passwordHash: string,
+    salt: string,
+) {
+    const rows = (await sql`
+        update profiles
+        set password              = ${passwordHash},
+            salt                  = ${salt},
+            forgot_password_token = null
+        where forgot_password_token = ${token}
+        returning profiles_id as "profilesId"
+    `) as { profilesId: number }[];
+    return rows[0];
+}
+
+export async function qryGetProfileForAuth(username: string): Promise<ProfileForAuth | undefined> {
+    const rows = (await sql`
+        select profiles_id as "profilesId",
+               name,
+               email,
+               username,
+               is_child   as "isChild",
+               is_parent  as "isParent",
+               is_admin   as "isAdmin",
+               password   as "passwordHash",
+               salt
+        from profiles
+        where username = ${username.toLowerCase()}
+    `) as ProfileForAuth[];
+    return rows[0];
+}
+
 // PROFILES CRUD
 // Note: password and salt are never SELECTed here — they should only be read by
 // the auth flow via a dedicated query.
@@ -269,7 +338,7 @@ export type DeviceLocationRow = {
 
 export async function qryGetLastKnownDeviceLocation(): Promise<DeviceLocationRow[]> {
     return (await sql`
-        select d.id                  as "deviceId",
+        select d.devices_id                  as "deviceId",
                d.name,
                d.platform,
                json_build_object(
@@ -284,7 +353,7 @@ export async function qryGetLastKnownDeviceLocation(): Promise<DeviceLocationRow
                  left join lateral (
             select *
             from locations
-            where locations.device_id = d.id
+            where locations.device_id = d.devices_id
             order by device_timestamp desc
                 limit 1
             ) l on true

@@ -6,6 +6,8 @@ export type NavItemType = {
     name: string;
     target: string;
     active: boolean;
+    // Only render this item when the viewer is authenticated. Default: item always renders.
+    requiresAuth?: boolean;
 };
 
 type NavItemProps = {

@@ -97,7 +97,7 @@ export default function BruhAdminTasksList() {
                                     </GridItem>
                                     <GridItem>
                                         <button
-                                            className={'button full-width'}
+                                            className={'button button-danger full-width'}
                                             onClick={() => setPendingDelete(task)}>
                                             Delete
                                         </button>

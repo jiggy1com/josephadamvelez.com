@@ -1,3 +1,4 @@
+import { Card } from '@/components/card/Card';
 import { useBruhAdminTasksAssignmentContext } from '@/providers/BruhAdminTasksAssignmentContext';
 
 type ProfilesListItemProps = {
@@ -20,45 +21,35 @@ export function ProfilesListItem({ profileCollection, taskList }: ProfilesListIt
     const profileTasks = profileCollection.tasks;
 
     const hasTask = (tasksId: number): boolean => {
-        if (!profileTasks) {
-            return false;
-        }
+        if (!profileTasks) return false;
         return profileTasks.some((pt) => pt.tasksId === tasksId);
     };
 
     return (
-        <div>
-            <h2>{profileCollection.name}</h2>
+        <Card header={profileCollection.name} trimHeader>
             {taskList.map((task) => {
                 const checked = hasTask(task.tasksId);
-
+                const id = `taskId-${profileCollection.profilesId}-${task.tasksId}`;
                 return (
-                    <div
-                        key={task.tasksId}
-                        style={{
-                            paddingTop: '10px',
-                        }}>
+                    <div key={task.tasksId} style={{ paddingTop: '10px' }}>
                         <input
                             checked={checked}
-                            type="checkbox"
-                            id={`taskId-${profileCollection.profilesId}-${task.tasksId}`}
+                            type={'checkbox'}
+                            id={id}
                             name={'taskId'}
                             value={task.tasksId}
-                            onChange={() => {
+                            onChange={() =>
                                 addOrRemoveProfilesTasks(
                                     profileCollection.profilesId,
                                     task.tasksId,
                                     !checked,
-                                );
-                            }}
+                                )
+                            }
                         />
-                        <label
-                            htmlFor={`taskId-${profileCollection.profilesId}-${task.tasksId}`}>
-                            {task.name}
-                        </label>
+                        <label htmlFor={id}>{task.name}</label>
                     </div>
                 );
             })}
-        </div>
+        </Card>
     );
 }

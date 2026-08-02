@@ -1,4 +1,5 @@
 @import '@/styles/_mixins.scss';
+@import '@/styles/_tokens.scss';
 
 //:root {
 //	--background: #ffffff;
@@ -43,10 +44,6 @@
 //	}
 //}
 
-:root {
-	--nav-height: 49px;
-}
-
 html,
 body {
 	-webkit-font-smoothing: antialiased;
@@ -89,8 +86,8 @@ body {
 	// Card — content container with optional header/footer.
 	// Tokens can be overridden per-instance via CSS custom properties.
 	.card {
-		--card-border: rgba(255, 255, 255, 0.15);
-		--card-chrome-bg: rgba(255, 255, 255, 0.04);
+		--card-border: var(--color-border-subtle);
+		--card-chrome-bg: var(--color-surface-chrome);
 		--card-padding: 15px 20px;
 		--card-radius: 10px;
 
@@ -144,14 +141,14 @@ body {
 		}
 
 		&:nth-child(odd) {
-			background-color: #ccc;
-			color: black;
+			background-color: var(--color-surface-alt);
+			color: var(--color-fg-on-alt);
 
 			a {
-				color: blue;
+				color: var(--color-link);
 
 				&.button {
-					color: white;
+					color: var(--button-fg);
 				}
 			}
 		}
@@ -189,13 +186,13 @@ body {
 				padding: 15px 20px;
 
 				&:nth-child(odd) {
-					background-color: Canvas;
-					color: CanvasText;
+					background-color: var(--color-bg);
+					color: var(--color-fg);
 				}
 
 				&:nth-child(even) {
-					background-color: #ccc;
-					color: black;
+					background-color: var(--color-surface-alt);
+					color: var(--color-fg-on-alt);
 				}
 			}
 
@@ -211,10 +208,15 @@ body {
 	.button {
 		cursor: pointer;
 		text-align: center;
-		padding: 15px 40px;
-		background: linear-gradient($buttonAngle, black, teal, black);
-		border-radius: 10px;
-		border: solid 1px black;
+		padding: var(--button-padding);
+		background: linear-gradient(
+						$buttonAngle,
+						var(--button-edge),
+						var(--color-primary),
+						var(--button-edge)
+		);
+		border-radius: var(--button-radius);
+		border: solid 1px var(--button-border);
 		font-weight: bold;
 		font-size: 1em;
 		text-transform: uppercase;
@@ -222,7 +224,7 @@ body {
 		transition: background-position 300ms;
 		background-size: 200% 200%;
 		background-position: left;
-		color: white;
+		color: var(--button-fg);
 
 		&:hover {
 			background-position: right;
@@ -231,6 +233,28 @@ body {
 		&.full-width {
 			width: 100%;
 			display: block;
+		}
+
+		// Secondary variant — swaps the gradient middle stop from teal to gold.
+		// Body text auto-adjusts because gold benefits from dark foreground.
+		&.button-secondary {
+			background: linear-gradient(
+							$buttonAngle,
+							var(--button-edge),
+							var(--color-secondary),
+							var(--button-edge)
+			);
+			color: var(--color-secondary-fg);
+		}
+
+		&.button-danger {
+			background: linear-gradient(
+							$buttonAngle,
+							var(--button-edge),
+							var(--color-error),
+							var(--button-edge)
+			);
+			color: var(--color-primary-fg);
 		}
 	}
 
@@ -249,7 +273,7 @@ body {
 	.admin-form {
 		input,
 		textarea {
-			border: solid 1px #ccc;
+			border: solid 1px var(--gray-200);
 			padding: 20px;
 			font-size: 16px;
 			border-radius: 10px;
@@ -261,7 +285,7 @@ body {
 	// Segmented control — pill group for mutually-exclusive choices.
 	.segmented-control {
 		display: inline-flex;
-		border: 1px solid #666;
+		border: 1px solid var(--color-border-strong);
 		border-radius: 999px;
 		overflow: hidden;
 		background-color: transparent;
@@ -279,16 +303,16 @@ body {
 			transition: background-color 150ms ease, color 150ms ease;
 
 			&:not(:last-child) {
-				border-right: 1px solid #666;
+				border-right: 1px solid var(--color-border-strong);
 			}
 
 			&:hover:not(.selected):not(:disabled) {
-				background-color: rgba(255, 255, 255, 0.05);
+				background-color: var(--color-surface-hover);
 			}
 
 			&.selected {
-				background-color: teal;
-				color: white;
+				background-color: var(--color-primary);
+				color: var(--color-primary-fg);
 				font-weight: bold;
 			}
 
@@ -321,7 +345,7 @@ body {
 			display: inline-block;
 			width: 44px;
 			height: 24px;
-			background-color: #666;
+			background-color: var(--color-border-strong);
 			border-radius: 999px;
 			transition: background-color 200ms ease;
 			flex-shrink: 0;
@@ -333,14 +357,15 @@ body {
 			left: 2px;
 			width: 20px;
 			height: 20px;
-			background-color: white;
+			background-color: var(--white);
 			border-radius: 50%;
 			transition: transform 200ms ease;
 		}
 
 		input[type='checkbox']:checked + .toggle-track {
-			background-color: teal;
+			background-color: var(--color-primary);
 		}
+
 		input[type='checkbox']:checked + .toggle-track .toggle-thumb {
 			transform: translateX(20px);
 		}
@@ -351,7 +376,7 @@ body {
 		}
 
 		input[type='checkbox']:focus-visible + .toggle-track {
-			outline: 2px solid teal;
+			outline: 2px solid var(--color-primary);
 			outline-offset: 2px;
 		}
 	}

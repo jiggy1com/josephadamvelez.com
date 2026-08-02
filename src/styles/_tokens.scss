@@ -1,0 +1,83 @@
+// Design tokens — the color palette for the Bruh admin.
+//
+// Structure:
+// 1. Raw color scales (--gray-*, --teal-*, --gold-*, etc.)
+//    Concrete values. Rename these when the brand changes.
+// 2. Semantic tokens (--color-primary, --color-error, etc.)
+//    Intent-based aliases. Components reference these, never the raw scales.
+// 3. Chrome/layout tokens (--nav-height, --button-fg, etc.)
+//    Component-specific but still shared across the app.
+//
+// Rule of thumb: if a value could reasonably be reused, it goes here.
+// If it's truly one-off, keep it inline.
+
+:root {
+    // ── raw color scales ──────────────────────────────────────────
+    --white:     #fff;
+    --black:     #000;
+
+    --gray-50:   #fafafa;
+    --gray-100:  #ebebeb;
+    --gray-200:  #ccc;
+    --gray-400:  #999;
+    --gray-500:  #666;
+    --gray-600:  #383838;
+    --gray-800:  #1a1a1a;
+    --gray-900:  #151515;
+    --gray-950:  #0a0a0a;
+
+    --teal-500:  #008080;  // classic named "teal"
+    --teal-600:  #006666;
+    --teal-700:  #004d4d;
+
+    --gold-500:  #d4a017;  // classic warm gold — teal's peacock pairing
+    --gold-600:  #b8860b;  // "darkgoldenrod"
+
+    --red-500:   #dc3545;  // bootstrap-ish red — softer than pure red
+    --green-500: #28a745;  // bootstrap-ish green
+
+    // Overlays — for translucent chrome on dark backgrounds.
+    --overlay-white-04: rgba(255, 255, 255, 0.04);
+    --overlay-white-05: rgba(255, 255, 255, 0.05);
+    --overlay-white-15: rgba(255, 255, 255, 0.15);
+
+    // ── semantic tokens ───────────────────────────────────────────
+    // Brand
+    --color-primary:        var(--teal-500);
+    --color-primary-hover:  var(--teal-600);
+    --color-primary-fg:     var(--white);
+
+    --color-secondary:      var(--gold-500);
+    --color-secondary-hover: var(--gold-600);
+    --color-secondary-fg:   var(--black);
+
+    // Feedback
+    --color-success:        var(--green-500);
+    --color-error:          var(--red-500);
+
+    // Page surface
+    --color-bg:             Canvas;        // adapts to color-scheme
+    --color-fg:             CanvasText;    // adapts to color-scheme
+    --color-surface-alt:    var(--gray-200);   // "the light band" on odd sections
+    --color-fg-on-alt:      var(--black);
+
+    // Chrome
+    --color-surface-chrome: var(--overlay-white-04);
+    --color-surface-hover:  var(--overlay-white-05);
+    --color-border-subtle:  var(--overlay-white-15);
+    --color-border-strong:  var(--gray-500);
+
+    // Link on light backgrounds
+    --color-link:           blue;
+
+    // ── layout tokens ─────────────────────────────────────────────
+    --nav-height:   49px;
+
+    // ── component tokens ──────────────────────────────────────────
+    // Buttons — the primary CTA uses a black→teal→black gradient sweep on hover.
+    --button-fg:         var(--white);
+    --button-border:     var(--black);
+    --button-edge:       var(--black);  // dark ends of the gradient sweep
+    --button-radius:     10px;
+    --button-padding:    15px 40px;
+}

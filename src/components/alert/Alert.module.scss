@@ -5,12 +5,12 @@
     margin-bottom: 20px;
 
     &.alert-success {
-        background-color: lightgreen;
-        border-color: green;
+        background-color: color-mix(in srgb, var(--color-success) 20%, transparent);
+        border-color: var(--color-success);
     }
 
     &.alert-error {
-        background-color: lightcoral;
-        border-color: red;
+        background-color: color-mix(in srgb, var(--color-error) 20%, transparent);
+        border-color: var(--color-error);
     }
 }

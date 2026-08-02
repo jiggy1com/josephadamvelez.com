@@ -7,7 +7,7 @@
 
 	background: linear-gradient($buttonAngle, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.9) 0%);
 	width: 100vw;
-	box-shadow: 0px 0px 60px black;
+	box-shadow: 0px 0px 60px var(--black);
 	overflow: scroll;
 	display: flex;
 	flex-direction: row;
@@ -21,7 +21,7 @@
 
 		border: solid 1px;
 		border-radius: 10px;
-		background-color: teal;
+		background-color: var(--color-primary);
 		padding: 18px 20px;
 		margin: 4px;
 
@@ -86,17 +86,17 @@
 
 		a {
 			cursor: pointer;
-			color: #ccc;
+			color: var(--gray-200);
 			font-weight: bold;
 			padding: 15px 20px;
 			text-wrap: nowrap;
 
 			&:hover {
-				color: teal;
+				color: var(--color-primary);
 			}
 
 			&.active {
-				color: teal;
+				color: var(--color-primary);
 			}
 		}
 	}

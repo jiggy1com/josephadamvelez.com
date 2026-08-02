@@ -1,54 +1,17 @@
-import { BruhNav } from '@/components/bruh/BruhNav';
-import { Section } from '@/components/section/Section';
-import { H1 } from '@/components/heading/H1';
-import { Flex } from '@/components/flexbox/Flex';
-import { FlexItem } from '@/components/flexbox/FlexItem';
-import { Grid } from '@/components/grid/Grid';
-import { GridItem } from '@/components/grid/GridItem';
-import { bruhAdminNavItems } from '@/config/NavConfig';
-import { useRouter } from 'next/router';
-import { BreakpointName, useBreakpoint } from '@/hooks/useBreakpoint';
-
-const columnsByBreakpoint: Record<BreakpointName, number> = {
-    mobile: 1,
-    mobileLandscape: 2,
-    tablet: 2,
-    tabletLandscape: 4,
-    desktop: 4,
-    desktopWide: 4,
-};
+import { BruhAdminDashboard } from '@/components/bruh/admin/BruhAdminDashboard';
+import { BruhAdminLogin } from '@/components/bruh/admin/BruhAdminLogin';
+import { useSession } from '@/hooks/useSession';
 
 export default function BruhAdminIndex() {
-    const router = useRouter();
-    const breakpoint = useBreakpoint();
-    const columns = columnsByBreakpoint[breakpoint];
-    return (
-        <>
-            <BruhNav />
-            <Section id={'bruh-admin'} className={'admin-section'}>
-                <Flex>
-                    <FlexItem>
-                        <h1>Bruh Admin</h1>
-                    </FlexItem>
-                </Flex>
-            </Section>
-            <Section id={'test'} className={'admin-section'}>
-                <Grid gap={'10px'} gridTemplateColumns={`repeat(${columns}, 1fr)`}>
-                    {bruhAdminNavItems.map((navItem) => {
-                        return (
-                            <GridItem key={navItem.target}>
-                                <button
-                                    className={'full-width'}
-                                    onClick={() => {
-                                        void router.push(navItem.target);
-                                    }}>
-                                    {navItem.name}
-                                </button>
-                            </GridItem>
-                        );
-                    })}
-                </Grid>
-            </Section>
-        </>
-    );
+    const { user, loading, refresh } = useSession();
+
+    if (loading) {
+        return null;
+    }
+
+    if (!user) {
+        return <BruhAdminLogin onSignedIn={() => void refresh()} />;
+    }
+
+    return <BruhAdminDashboard />;
 }
