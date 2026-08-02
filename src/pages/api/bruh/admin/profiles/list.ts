@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { qryGetChoreList } from '@/utils/adminQueries';
+import { qryGetProfileList } from '@/utils/adminQueries';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'GET') {
@@ -7,9 +7,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-        const data = await qryGetChoreList();
+        const data = await qryGetProfileList();
         return res.status(200).json({ success: true, data });
     } catch (e) {
-        return res.status(500).json({ success: false, error: 'Failed to load chores' });
+        const error = e instanceof Error ? e.message : String(e);
+        return res.status(500).json({ success: false, error });
     }
 }

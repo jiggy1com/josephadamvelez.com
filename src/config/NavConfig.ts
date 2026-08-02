@@ -92,17 +92,17 @@ export const bruhAdminNavItems = [
     },
     {
         name: 'Profiles',
-        target: '/bruh/admin/profiles',
+        target: '/bruh/admin/profiles/list',
         active: false,
     },
     {
-        name: 'Chores',
-        target: '/bruh/admin/chores/list',
+        name: 'Tasks',
+        target: '/bruh/admin/tasks/list',
         active: false,
     },
     {
-        name: 'Chores Assignment',
-        target: '/bruh/admin/chores-assignment',
+        name: 'Tasks Assignment',
+        target: '/bruh/admin/tasks-assignment',
         active: false,
     },
     {

@@ -3,52 +3,46 @@ import { useRouter } from 'next/router';
 import { GetServerSideProps } from 'next';
 import { BruhNav } from '@/components/bruh/BruhNav';
 import { Section } from '@/components/section/Section';
-import { Alert, AlertType } from '@/components/alert/Alert';
-import { qryGetChoreById } from '@/utils/adminQueries';
-import type { Chore } from '@/utils/adminQueries';
+import { Alert } from '@/components/alert/Alert';
+import { qryGetTaskById } from '@/utils/adminQueries';
+import type { Task } from '@/utils/adminQueries';
+import { useFormSubmit } from '@/hooks/useFormSubmit';
 
-type Props = { chore: Chore };
+type Props = { task: Task };
 
 export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
-    const choreid = Number(ctx.params?.choreid);
-    if (!choreid) return { notFound: true };
-    const chore = await qryGetChoreById(choreid);
-    if (!chore) return { notFound: true };
-    return { props: { chore } };
+    const tasksId = Number(ctx.params?.tasksId);
+    if (!tasksId) return { notFound: true };
+    const task = await qryGetTaskById(tasksId);
+    if (!task) return { notFound: true };
+    return { props: { task } };
 };
 
-export default function BruhAdminChoresEdit({ chore }: Props) {
+export default function BruhAdminTasksEdit({ task }: Props) {
     const router = useRouter();
-    const [name, setName] = useState(chore.name);
-    const [alert, setAlert] = useState<AlertType>({ success: false, message: '' });
-    const [submitting, setSubmitting] = useState(false);
+    const [name, setName] = useState(task.name);
+    const { submit, submitting, alert } = useFormSubmit<{ tasksId: number; name: string }>(
+        '/api/bruh/admin/tasks/update',
+        {
+            successMessage: 'Task updated',
+            onSuccess: () => {
+                setTimeout(() => {
+                    void router.push('/bruh/admin/tasks/list');
+                }, 1000);
+            },
+        },
+    );
 
     const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (submitting) return;
-        setSubmitting(true);
-        const res = await fetch('/api/bruh/admin/chores/update', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ choreid: chore.choreid, name }),
-        });
-        const json = await res.json();
-        if (json.success) {
-            setAlert({ success: true, message: 'Chore updated' });
-            setTimeout(() => {
-                void router.push('/bruh/admin/chores/list');
-            }, 1000);
-        } else {
-            setAlert({ success: false, message: json.error ?? 'Failed to update chore' });
-            setSubmitting(false);
-        }
+        await submit({ tasksId: task.tasksId, name });
     };
 
     return (
         <>
             <BruhNav />
-            <Section id={'bruh-admin-chores-edit'} className={'admin-section'}>
-                <h1>Edit Chore</h1>
+            <Section id={'bruh-admin-tasks-edit'} className={'admin-section'}>
+                <h1>Edit Task</h1>
                 <Alert success={alert.success} message={alert.message} />
                 <form className={'admin-form'} onSubmit={(e) => void onSubmit(e)}>
                     <div>
@@ -67,7 +61,7 @@ export default function BruhAdminChoresEdit({ chore }: Props) {
                         <button
                             type={'button'}
                             className={'button'}
-                            onClick={() => void router.push('/bruh/admin/chores/list')}>
+                            onClick={() => void router.push('/bruh/admin/tasks/list')}>
                             Cancel
                         </button>
                         <button type={'submit'} className={'button'} disabled={submitting}>

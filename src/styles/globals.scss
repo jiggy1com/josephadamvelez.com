@@ -80,6 +80,53 @@ body {
 
 	padding-top: var(--nav-height);
 
+	// Stack utility — adds vertical rhythm between direct children.
+	// Override the gap per-instance with `--stack-gap` on any container.
+	.stack > * + * {
+		margin-block-start: var(--stack-gap, 20px);
+	}
+
+	// Card — content container with optional header/footer.
+	// Tokens can be overridden per-instance via CSS custom properties.
+	.card {
+		--card-border: rgba(255, 255, 255, 0.15);
+		--card-chrome-bg: rgba(255, 255, 255, 0.04);
+		--card-padding: 15px 20px;
+		--card-radius: 10px;
+
+		border: 1px solid var(--card-border);
+		border-radius: var(--card-radius);
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+
+		.card-header,
+		.card-footer {
+			background-color: var(--card-chrome-bg);
+			padding: var(--card-padding);
+			font-weight: bold;
+		}
+
+		.card-header {
+			border-bottom: 1px solid var(--card-border);
+
+			&.trim {
+				text-overflow: ellipsis;
+				overflow: hidden;
+				text-wrap: nowrap;
+			}
+		}
+
+		.card-footer {
+			border-top: 1px solid var(--card-border);
+		}
+
+		.card-body {
+			padding: var(--card-padding);
+			flex-grow: 1;
+		}
+	}
+
 	section {
 		padding: 20px;
 		@include mediaMin('tablet') {
@@ -102,6 +149,10 @@ body {
 
 			a {
 				color: blue;
+
+				&.button {
+					color: white;
+				}
 			}
 		}
 
@@ -134,7 +185,7 @@ body {
 				}
 			}
 
-			.chore-row {
+			.list-striped > * {
 				padding: 15px 20px;
 
 				&:nth-child(odd) {
@@ -146,8 +197,10 @@ body {
 					background-color: #ccc;
 					color: black;
 				}
+			}
 
-
+			button, .button {
+				padding: 10px 40px;
 			}
 
 		}
@@ -202,6 +255,104 @@ body {
 			border-radius: 10px;
 			margin-bottom: 10px;
 			width: 100%;
+		}
+	}
+
+	// Segmented control — pill group for mutually-exclusive choices.
+	.segmented-control {
+		display: inline-flex;
+		border: 1px solid #666;
+		border-radius: 999px;
+		overflow: hidden;
+		background-color: transparent;
+
+		.segment {
+			// Override the global .button styling — this isn't a call-to-action button.
+			background: none;
+			color: inherit;
+			text-transform: none;
+			border: none;
+			border-radius: 0;
+			padding: 8px 20px;
+			font-weight: normal;
+			cursor: pointer;
+			transition: background-color 150ms ease, color 150ms ease;
+
+			&:not(:last-child) {
+				border-right: 1px solid #666;
+			}
+
+			&:hover:not(.selected):not(:disabled) {
+				background-color: rgba(255, 255, 255, 0.05);
+			}
+
+			&.selected {
+				background-color: teal;
+				color: white;
+				font-weight: bold;
+			}
+
+			&:disabled {
+				opacity: 0.5;
+				cursor: not-allowed;
+			}
+		}
+	}
+
+	// Toggle — checkbox styled as a switch.
+	.toggle {
+		display: inline-flex;
+		align-items: center;
+		gap: 12px;
+		cursor: pointer;
+
+		input[type='checkbox'] {
+			// Hide the native checkbox but keep it in the layout for a11y and form submission.
+			position: absolute;
+			opacity: 0;
+			pointer-events: none;
+			width: 0;
+			height: 0;
+			margin: 0;
+		}
+
+		.toggle-track {
+			position: relative;
+			display: inline-block;
+			width: 44px;
+			height: 24px;
+			background-color: #666;
+			border-radius: 999px;
+			transition: background-color 200ms ease;
+			flex-shrink: 0;
+		}
+
+		.toggle-thumb {
+			position: absolute;
+			top: 2px;
+			left: 2px;
+			width: 20px;
+			height: 20px;
+			background-color: white;
+			border-radius: 50%;
+			transition: transform 200ms ease;
+		}
+
+		input[type='checkbox']:checked + .toggle-track {
+			background-color: teal;
+		}
+		input[type='checkbox']:checked + .toggle-track .toggle-thumb {
+			transform: translateX(20px);
+		}
+
+		input[type='checkbox']:disabled + .toggle-track {
+			opacity: 0.5;
+			cursor: not-allowed;
+		}
+
+		input[type='checkbox']:focus-visible + .toggle-track {
+			outline: 2px solid teal;
+			outline-offset: 2px;
 		}
 	}
 

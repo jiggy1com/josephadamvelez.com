@@ -1,22 +1,22 @@
 import { BruhNav } from '@/components/bruh/BruhNav';
 import { BruhChores } from '@/components/bruh/BruhChores';
-import { qryGetKidChoreListByKidIdGrouped } from '@/utils/adminQueries';
+import { qryGetProfilesTasksByProfileGrouped } from '@/utils/adminQueries';
 import { ChoresProvider } from '@/providers/BruhChoresContext';
 
 export type BruhChoresProps = {
     data: {
-        kidChoreListByKidIdGrouped: Awaited<ReturnType<typeof qryGetKidChoreListByKidIdGrouped>>;
+        profilesWithTasks: Awaited<ReturnType<typeof qryGetProfilesTasksByProfileGrouped>>;
     };
 };
 
 export async function getServerSideProps() {
-    const kidChoreListByKidIdGrouped = await qryGetKidChoreListByKidIdGrouped();
+    const profilesWithTasks = await qryGetProfilesTasksByProfileGrouped();
 
     return {
         props: {
             title: 'Bruh Chores',
             data: {
-                kidChoreListByKidIdGrouped,
+                profilesWithTasks,
             },
         },
     };
@@ -29,7 +29,6 @@ export default function Chores({ data }: BruhChoresProps) {
             <ChoresProvider data={data}>
                 <BruhChores />
             </ChoresProvider>
-            {/*<pre>{JSON.stringify(data, null, 2)}</pre>*/}
         </div>
     );
 }

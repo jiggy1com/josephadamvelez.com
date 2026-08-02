@@ -1,13 +1,13 @@
 import { useChores } from '@/providers/BruhChoresContext';
 import { Flex } from '@/components/flexbox/Flex';
 import { FlexItem } from '@/components/flexbox/FlexItem';
-import { KidChoreWithStatus } from '@/utils/adminQueries';
+import { ProfilesTasksWithStatus } from '@/utils/adminQueries';
 import { Section } from '@/components/section/Section';
 import { useFlexDirection } from '@/hooks/useFlexDirection';
 
 export function BruhChores() {
     const chores = useChores();
-    const kidChoreListByKidIdGrouped = chores.data.kidChoreListByKidIdGrouped;
+    const profilesWithTasks = chores.data.profilesWithTasks;
     const toggleChoreStatus = chores.toggleChoreStatus;
 
     const flexDirection = useFlexDirection();
@@ -16,6 +16,7 @@ export function BruhChores() {
     for (let i = 1; i <= 10; i++) {
         garbageSpacer.push(<p key={i}>&nbsp;</p>);
     }
+
     return (
         <>
             <Section id={'bruh-chores'}>
@@ -26,40 +27,31 @@ export function BruhChores() {
             <Section id={'chores'}>
                 <article>
                     <Flex flexDirection={flexDirection} rowGap={'20px'} gap={'20px'}>
-                        {kidChoreListByKidIdGrouped.map((kidChoreList) => (
-                            <FlexItem key={kidChoreList.kidid} flexGrow={1}>
-                                <h2
-                                    style={{
-                                        marginBottom: '10px',
-                                    }}>
-                                    {kidChoreList.name}
-                                </h2>
-                                {!Array.isArray(kidChoreList.chores) && (
+                        {profilesWithTasks.map((profile) => (
+                            <FlexItem key={profile.profilesId} flexGrow={1}>
+                                <h2 style={{ marginBottom: '10px' }}>{profile.name}</h2>
+                                {!Array.isArray(profile.tasks) && (
                                     <p>No chores assigned. Enjoy your day off.</p>
                                 )}
-                                {Array.isArray(kidChoreList.chores) &&
-                                    kidChoreList.chores.map((chore: KidChoreWithStatus) => {
-                                        const id = `choreId-${kidChoreList.kidid}-${chore.choreid}`;
+                                {Array.isArray(profile.tasks) &&
+                                    profile.tasks.map((task: ProfilesTasksWithStatus) => {
+                                        const id = `taskId-${profile.profilesId}-${task.tasksId}`;
                                         return (
-                                            <div
-                                                key={chore.choreid}
-                                                style={{
-                                                    paddingTop: '10px',
-                                                }}>
+                                            <div key={task.tasksId} style={{ paddingTop: '10px' }}>
                                                 <input
-                                                    checked={chore.completed}
+                                                    checked={task.completed}
                                                     type="checkbox"
                                                     id={id}
-                                                    name={'choreId'}
-                                                    value={chore.choreid}
+                                                    name={'taskId'}
+                                                    value={task.tasksId}
                                                     onChange={() => {
                                                         toggleChoreStatus(
-                                                            chore.kidchoreid,
-                                                            !chore.completed,
+                                                            task.profilesTasksId,
+                                                            !task.completed,
                                                         );
                                                     }}
                                                 />
-                                                <label htmlFor={id}>{chore.name}</label>
+                                                <label htmlFor={id}>{task.name}</label>
                                             </div>
                                         );
                                     })}
@@ -67,7 +59,6 @@ export function BruhChores() {
                         ))}
                     </Flex>
                     {garbageSpacer}
-                    {/*<pre>{JSON.stringify(chores, null, 2)}</pre>*/}
                 </article>
             </Section>
         </>

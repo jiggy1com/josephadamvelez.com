@@ -2,10 +2,10 @@ import { neon } from '@neondatabase/serverless';
 
 const sql = neon(process.env.DATABASE_URL!);
 
-export const updateChoreStatus = async (kidchoreid: number, completed: boolean) => {
+export const updateTaskStatus = async (profilesTasksId: number, completed: boolean) => {
     await sql`
-        update kidchore
+        update profiles_tasks
         set completed = ${completed}
-        where kidchoreid = ${kidchoreid}
+        where profiles_tasks_id = ${profilesTasksId}
     `;
 };

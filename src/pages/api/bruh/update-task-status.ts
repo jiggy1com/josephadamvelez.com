@@ -1,22 +1,23 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { qryUpdateChore } from '@/utils/adminQueries';
+import { updateTaskStatus } from '@/utils/userQueries';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const choreid = Number(req.body?.choreid);
-    const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
-    if (!choreid || !name) {
+    const profilesTasksId = Number(req.body?.profilesTasksId);
+    const completed = Boolean(req.body?.completed);
+
+    if (!profilesTasksId) {
         return res
             .status(400)
-            .json({ success: false, error: 'choreid and name are required' });
+            .json({ success: false, error: 'profilesTasksId is required' });
     }
 
     try {
-        const data = await qryUpdateChore(choreid, name);
-        return res.status(200).json({ success: true, data });
+        await updateTaskStatus(profilesTasksId, completed);
+        return res.status(200).json({ success: true });
     } catch (e) {
         const error = e instanceof Error ? e.message : String(e);
         return res.status(500).json({ success: false, error });
