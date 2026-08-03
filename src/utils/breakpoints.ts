@@ -2,22 +2,22 @@
 const breakpoints = {
     mobile: {
         min: 0,
-        max: 480,
+        max: 479,
     },
     mobileLandscape: {
-        min: 481,
-        max: 780,
+        min: 480,
+        max: 779,
     },
     tablet: {
-        min: 781,
-        max: 1024,
+        min: 780,
+        max: 1023,
     },
     tabletLandscape: {
-        min: 1025,
-        max: 1440,
+        min: 1024,
+        max: 1339,
     },
     desktop: {
-        min: 1441,
+        min: 1440,
         max: 1919,
     },
     desktopWide: {

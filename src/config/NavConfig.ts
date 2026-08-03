@@ -52,8 +52,8 @@ export const bruhNavItems = [
         active: false,
     },
     {
-        name: 'Chores',
-        target: '/bruh/chores',
+        name: 'Tasks',
+        target: '/bruh/tasks',
         active: false,
     },
     {
@@ -92,22 +92,50 @@ export const bruhAdminNavItems = [
     },
     {
         name: 'Profiles',
-        target: '/bruh/admin/profiles',
+        target: '/bruh/admin/profiles/list',
         active: false,
+        requiresAuth: true,
     },
     {
-        name: 'Chores',
-        target: '/bruh/admin/chores/list',
+        name: 'Tasks',
+        target: '/bruh/admin/tasks/list',
         active: false,
+        requiresAuth: true,
     },
     {
-        name: 'Chores Assignment',
-        target: '/bruh/admin/chores-assignment',
+        name: 'Assign Tasks',
+        target: '/bruh/admin/tasks/assign',
         active: false,
+        requiresAuth: true,
+    },
+    {
+        name: 'Meals',
+        target: '/bruh/admin/meals/list',
+        active: false,
+        requiresAuth: true,
+    },
+    {
+        name: 'Calendar',
+        target: '/bruh/admin/calendar',
+        active: false,
+        requiresAuth: true,
+    },
+    {
+        name: 'Calendars',
+        target: '/bruh/admin/ics-feeds/list',
+        active: false,
+        requiresAuth: true,
     },
     {
         name: 'Rewards',
         target: '/bruh/admin/rewards',
         active: false,
+        requiresAuth: true,
+    },
+    {
+        name: 'Logout',
+        target: '/bruh/admin/logout',
+        active: false,
+        requiresAuth: true,
     },
 ] as NavItemType[];

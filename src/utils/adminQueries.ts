@@ -3,179 +3,496 @@ import { neon } from '@neondatabase/serverless';
 const sql = neon(process.env.DATABASE_URL!);
 
 // TABLES
-export type Kid = {
-    kidid: number;
+export type Profile = {
+    profilesId: number;
+    name: string;
+    email: string | null;
+    username: string | null;
+    isChild: boolean;
+    isParent: boolean;
+    isAdmin: boolean;
+};
+
+// For inserting/updating a profile — password is plaintext at this boundary
+// (hashed by the API endpoint before hitting the DB).
+export type ProfileInput = {
+    name: string;
+    email?: string | null;
+    username?: string | null;
+    isChild: boolean;
+    isParent: boolean;
+    isAdmin: boolean;
+};
+
+export type Task = {
+    tasksId: number;
     name: string;
 };
 
-export type Chore = {
-    choreid: number;
-    name: string;
-};
-
-export type KidChore = {
-    kidchoreid: number;
-    kidid: number;
-    choreid: number;
+export type ProfilesTasks = {
+    profilesTasksId: number;
+    profilesId: number;
+    tasksId: number;
     active: boolean;
     completed: boolean;
 };
 
-// JOINED TABLES
-export type KidChoreWithStatus = {
-    kidchoreid: number;
-    choreid: number;
+// JOINED
+export type ProfilesTasksWithStatus = {
+    profilesTasksId: number;
+    tasksId: number;
     name: string;
     completed: boolean;
 };
-export type KidChoreList = {
-    kidid: number;
+
+export type ProfileWithTasks = {
+    profilesId: number;
     name: string;
-    chores: KidChoreWithStatus[];
+    tasks: ProfilesTasksWithStatus[];
 };
 
-export async function qryGetKidList() {
-    return sql`
-        select kidid,
-               name
-        from kid
-        order by kidid
-    `;
-}
+// AUTH — the only query that returns password + salt. Never call this from the client;
+// it's for the login endpoint only.
+export type ProfileForAuth = Profile & {
+    passwordHash: string;
+    salt: string;
+};
 
-export async function qryGetChoreList() {
-    return sql`
-        select choreid,
-               name
-        from chore
-        order by name
-    `;
-}
-
-export async function qryGetChoreById(choreid: number): Promise<Chore | undefined> {
+// Forgot-password flow — updates the reset token by username. Returns the row so the caller
+// can decide whether to actually send an email (never leak "no such user" via the response).
+export async function qrySetForgotPasswordToken(username: string, token: string) {
     const rows = (await sql`
-        select choreid,
-               name
-        from chore
-        where choreid = ${choreid}
-    `) as Chore[];
+        update profiles
+        set forgot_password_token = ${token}
+        where username = ${username.toLowerCase()}
+        returning profiles_id as "profilesId", name, email
+    `) as { profilesId: number; name: string; email: string | null }[];
     return rows[0];
 }
 
-export async function qryAddChore(name: string) {
+export async function qryGetProfileByForgotPasswordToken(
+    token: string,
+): Promise<Profile | undefined> {
+    const rows = (await sql`
+        select profiles_id as "profilesId",
+               name,
+               email,
+               username,
+               is_child   as "isChild",
+               is_parent  as "isParent",
+               is_admin   as "isAdmin"
+        from profiles
+        where forgot_password_token = ${token}
+    `) as Profile[];
+    return rows[0];
+}
+
+export async function qryResetPasswordByToken(
+    token: string,
+    passwordHash: string,
+    salt: string,
+) {
+    const rows = (await sql`
+        update profiles
+        set password              = ${passwordHash},
+            salt                  = ${salt},
+            forgot_password_token = null
+        where forgot_password_token = ${token}
+        returning profiles_id as "profilesId"
+    `) as { profilesId: number }[];
+    return rows[0];
+}
+
+export async function qryGetProfileForAuth(username: string): Promise<ProfileForAuth | undefined> {
+    const rows = (await sql`
+        select profiles_id as "profilesId",
+               name,
+               email,
+               username,
+               is_child   as "isChild",
+               is_parent  as "isParent",
+               is_admin   as "isAdmin",
+               password   as "passwordHash",
+               salt
+        from profiles
+        where username = ${username.toLowerCase()}
+    `) as ProfileForAuth[];
+    return rows[0];
+}
+
+// PROFILES CRUD
+// Note: password and salt are never SELECTed here — they should only be read by
+// the auth flow via a dedicated query.
+export async function qryGetProfileList(): Promise<Profile[]> {
+    return (await sql`
+        select profiles_id as "profilesId",
+               name,
+               email,
+               username,
+               is_child   as "isChild",
+               is_parent  as "isParent",
+               is_admin   as "isAdmin"
+        from profiles
+        order by lower(name)
+    `) as Profile[];
+}
+
+export async function qryGetProfileById(profilesId: number): Promise<Profile | undefined> {
+    const rows = (await sql`
+        select profiles_id as "profilesId",
+               name,
+               email,
+               username,
+               is_child   as "isChild",
+               is_parent  as "isParent",
+               is_admin   as "isAdmin"
+        from profiles
+        where profiles_id = ${profilesId}
+    `) as Profile[];
+    return rows[0];
+}
+
+export async function qryAddProfile(
+    input: ProfileInput,
+    passwordHash: string,
+    salt: string,
+) {
+    const email = input.email ? input.email.toLowerCase() : null;
+    const username = input.username ? input.username.toLowerCase() : null;
     return sql`
-        insert into chore (name)
+        insert into profiles (name, email, username, password, salt, is_child, is_parent, is_admin)
+        values (${input.name},
+                ${email},
+                ${username},
+                ${passwordHash},
+                ${salt},
+                ${input.isChild},
+                ${input.isParent},
+                ${input.isAdmin})
+        returning profiles_id as "profilesId", name
+    `;
+}
+
+// Updates name + toggles + optional email/username. Password/salt are only
+// changed when the caller passes both (i.e., the user chose to set a new password).
+export async function qryUpdateProfile(
+    profilesId: number,
+    input: ProfileInput,
+    passwordHash?: string,
+    salt?: string,
+) {
+    const email = input.email ? input.email.toLowerCase() : null;
+    const username = input.username ? input.username.toLowerCase() : null;
+
+    if (passwordHash && salt) {
+        return sql`
+            update profiles
+            set name      = ${input.name},
+                email     = ${email},
+                username  = ${username},
+                password  = ${passwordHash},
+                salt      = ${salt},
+                is_child  = ${input.isChild},
+                is_parent = ${input.isParent},
+                is_admin  = ${input.isAdmin}
+            where profiles_id = ${profilesId}
+            returning profiles_id as "profilesId", name
+        `;
+    }
+
+    return sql`
+        update profiles
+        set name      = ${input.name},
+            email     = ${email},
+            username  = ${username},
+            is_child  = ${input.isChild},
+            is_parent = ${input.isParent},
+            is_admin  = ${input.isAdmin}
+        where profiles_id = ${profilesId}
+        returning profiles_id as "profilesId", name
+    `;
+}
+
+export async function qryDeleteProfile(profilesId: number) {
+    return sql`
+        delete
+        from profiles
+        where profiles_id = ${profilesId}
+    `;
+}
+
+// TASKS CRUD
+export async function qryGetTaskList(): Promise<Task[]> {
+    return (await sql`
+        select tasks_id as "tasksId",
+               name
+        from tasks
+        order by lower(name)
+    `) as Task[];
+}
+
+export async function qryGetTaskById(tasksId: number): Promise<Task | undefined> {
+    const rows = (await sql`
+        select tasks_id as "tasksId",
+               name
+        from tasks
+        where tasks_id = ${tasksId}
+    `) as Task[];
+    return rows[0];
+}
+
+export async function qryAddTask(name: string) {
+    return sql`
+        insert into tasks (name)
         values (${name})
-        returning choreid, name
+        returning tasks_id as "tasksId", name
     `;
 }
 
-export async function qryUpdateChore(choreid: number, name: string) {
+export async function qryUpdateTask(tasksId: number, name: string) {
     return sql`
-        update chore
+        update tasks
         set name = ${name}
-        where choreid = ${choreid}
-        returning choreid, name
+        where tasks_id = ${tasksId}
+        returning tasks_id as "tasksId", name
     `;
 }
 
-export async function qryDeleteChore(choreid: number) {
+export async function qryDeleteTask(tasksId: number) {
     return sql`
-        delete from chore
-        where choreid = ${choreid}
+        delete
+        from tasks
+        where tasks_id = ${tasksId}
     `;
 }
 
-export async function qryGetKidChoreList() {
-    return sql`
-        select kc.kidchoreid,
-               k.kidid,
-               k.name as kid_name,
-               c.choreid,
-               c.name as chore_name,
-               kc.active,
-               kc.completed
-        from kidchore kc
-                 inner join kid k
-                            on k.kidid = kc.kidid
-                 inner join chore c
-                            on c.choreid = kc.choreid
-        where kc.active = true
-        order by k.name,
-                 c.name;
+// PROFILES_TASKS (many-to-many)
+export async function qryGetProfilesTasksByProfileGrouped(): Promise<ProfileWithTasks[]> {
+    return (await sql`
+        select p.profiles_id as "profilesId",
+               p.name,
+               json_agg(
+                       json_build_object(
+                               'profilesTasksId', pt.profiles_tasks_id,
+                               'tasksId', t.tasks_id,
+                               'name', t.name,
+                               'completed', pt.completed
+                       ) order by t.name
+               ) filter (where t.tasks_id is not null) as tasks
+        from profiles p
+                 left join profiles_tasks pt on pt.profiles_id = p.profiles_id and pt.active = true
+                 left join tasks t on t.tasks_id = pt.tasks_id
+        group by p.profiles_id, p.name
+    `) as ProfileWithTasks[];
+}
+
+export async function qryAddOrRemoveProfilesTasks(
+    profilesId: number,
+    tasksId: number,
+    active: boolean,
+) {
+    const record = await sql`
+        select *
+        from profiles_tasks
+        where profiles_id = ${profilesId}
+          and tasks_id = ${tasksId}
     `;
-}
-
-export async function qryGetKidChoreListByKidIdGrouped(): Promise<KidChoreList[]> {
-    return (await sql`select k.kidid,
-                             k.name,
-                             json_agg(
-                                     json_build_object(
-                                             'kidchoreid', kc.kidchoreid,
-                                             'choreid', c.choreid,
-                                             'name', c.name,
-                                             'completed', kc.completed
-                                     ) order by  c.name
-                             ) filter (where c.choreid is not null) as chores
-                      from kid k
-                               left join kidchore kc on kc.kidid = k.kidid and kc.active = true
-                               left join chore c on c.choreid = kc.choreid
-
-                      group by k.kidid, k.name
-    ;`) as KidChoreList[];
-}
-
-export async function qryAddOrRemoveKidChore(kidid: number, choreid: number, active: boolean) {
-    const record = await sql`select *
-                             from kidchore
-                             where kidid = ${kidid}
-                               and choreid = ${choreid}`;
-    console.log('record', record, {
-        kidid,
-        choreid,
-        active,
-    });
     if (record.length > 0) {
-        console.log('updating', kidid, choreid, active);
-        await sql`update kidchore
-                  set active    = ${active},
-                      completed = false
-                  where kidid = ${kidid}
-                    and choreid = ${choreid}`;
+        await sql`
+            update profiles_tasks
+            set active    = ${active},
+                completed = false
+            where profiles_id = ${profilesId}
+              and tasks_id = ${tasksId}
+        `;
     } else {
-        console.log('inserting', kidid, choreid, active);
-        await sql`insert into kidchore (kidid, choreid, active, completed)
-                  values (${kidid}, ${choreid}, true, false)`;
+        await sql`
+            insert into profiles_tasks (profiles_id, tasks_id, active, completed)
+            values (${profilesId}, ${tasksId}, true, false)
+        `;
     }
 }
 
-export async function qryRemoveAllKidChores() {
-    await sql`update kidchore
-              set active    = false,
-                  completed = false`;
+export async function qryRemoveAllProfilesTasks() {
+    await sql`
+        update profiles_tasks
+        set active    = false,
+            completed = false
+    `;
 }
 
-// export async function qryGetKidChoreListByKidId(kidId: number) {
-//     return sql`
-//         select kc.kidchoreid,
-//                k.kidid,
-//                k.name as kid_name,
-//                c.choreid,
-//                c.name as chore_name,
-//                kc.active,
-//                kc.completed
-//         from kidchore kc
-//                  inner join kid k
-//                             on k.kidid = kc.kidid
-//                  inner join chore c
-//                             on c.choreid = kc.choreid
-//         where kc.active = true
-//           and k.kidid = ${kidId}
-//         order by k.name,
-//                  c.name;
-//     `;
-// }
+// MEALS CRUD
+export type Meal = {
+    mealId: number;
+    name: string;
+};
 
+export async function qryGetMealList(): Promise<Meal[]> {
+    return (await sql`
+        select meal_id as "mealId",
+               name
+        from meals
+        order by lower(name)
+    `) as Meal[];
+}
+
+export async function qryGetMealById(mealId: number): Promise<Meal | undefined> {
+    const rows = (await sql`
+        select meal_id as "mealId",
+               name
+        from meals
+        where meal_id = ${mealId}
+    `) as Meal[];
+    return rows[0];
+}
+
+export async function qryAddMeal(name: string) {
+    return sql`
+        insert into meals (name)
+        values (${name})
+        returning meal_id as "mealId", name
+    `;
+}
+
+export async function qryUpdateMeal(mealId: number, name: string) {
+    return sql`
+        update meals
+        set name = ${name}
+        where meal_id = ${mealId}
+        returning meal_id as "mealId", name
+    `;
+}
+
+export async function qryDeleteMeal(mealId: number) {
+    return sql`
+        delete
+        from meals
+        where meal_id = ${mealId}
+    `;
+}
+
+// ICS FEEDS CRUD
+export type IcsFeed = {
+    icsFeedId: number;
+    name: string;
+    url: string;
+    color: string | null;
+    active: boolean;
+};
+
+export async function qryGetIcsFeedList(): Promise<IcsFeed[]> {
+    return (await sql`
+        select ics_feed_id as "icsFeedId",
+               name,
+               url,
+               color,
+               active
+        from ics_feeds
+        order by lower(name)
+    `) as IcsFeed[];
+}
+
+export async function qryGetIcsFeedById(icsFeedId: number): Promise<IcsFeed | undefined> {
+    const rows = (await sql`
+        select ics_feed_id as "icsFeedId",
+               name,
+               url,
+               color,
+               active
+        from ics_feeds
+        where ics_feed_id = ${icsFeedId}
+    `) as IcsFeed[];
+    return rows[0];
+}
+
+export async function qryAddIcsFeed(
+    name: string,
+    url: string,
+    color: string | null,
+    active: boolean,
+) {
+    return sql`
+        insert into ics_feeds (name, url, color, active)
+        values (${name}, ${url}, ${color}, ${active})
+        returning ics_feed_id as "icsFeedId", name, url, color, active
+    `;
+}
+
+export async function qryUpdateIcsFeed(
+    icsFeedId: number,
+    name: string,
+    url: string,
+    color: string | null,
+    active: boolean,
+) {
+    return sql`
+        update ics_feeds
+        set name   = ${name},
+            url    = ${url},
+            color  = ${color},
+            active = ${active}
+        where ics_feed_id = ${icsFeedId}
+        returning ics_feed_id as "icsFeedId", name, url, color, active
+    `;
+}
+
+export async function qryDeleteIcsFeed(icsFeedId: number) {
+    return sql`
+        delete
+        from ics_feeds
+        where ics_feed_id = ${icsFeedId}
+    `;
+}
+
+// MEAL PLANS
+// A "meal plan" is the scheduled appearance of a meal on a specific date + slot.
+// The (date, slot) UNIQUE constraint means one meal per slot per day — upsert
+// handles both "add to empty slot" and "drop onto occupied slot to replace".
+export type MealSlot = 'breakfast' | 'lunch' | 'dinner';
+
+export type MealPlan = {
+    mealPlansId: number;
+    mealId: number;
+    mealName: string;
+    date: string;  // YYYY-MM-DD — cast to text so we bypass Date object timezone weirdness
+    slot: MealSlot;
+};
+
+export async function qryGetMealPlansInRange(from: string, to: string): Promise<MealPlan[]> {
+    return (await sql`
+        select mp.meal_plans_id                    as "mealPlansId",
+               mp.meal_id                          as "mealId",
+               m.name                              as "mealName",
+               to_char(mp.date, 'YYYY-MM-DD')      as "date",
+               mp.slot
+        from meal_plans mp
+                 inner join meals m on m.meal_id = mp.meal_id
+        where mp.date between ${from} and ${to}
+        order by mp.date, mp.slot
+    `) as MealPlan[];
+}
+
+export async function qryUpsertMealPlan(mealId: number, date: string, slot: MealSlot) {
+    return sql`
+        insert into meal_plans (meal_id, date, slot)
+        values (${mealId}, ${date}, ${slot})
+        on conflict (date, slot) do update set meal_id = excluded.meal_id
+        returning meal_plans_id                as "mealPlansId",
+                  meal_id                      as "mealId",
+                  to_char(date, 'YYYY-MM-DD')  as "date",
+                  slot
+    `;
+}
+
+export async function qryDeleteMealPlan(mealPlansId: number) {
+    return sql`
+        delete
+        from meal_plans
+        where meal_plans_id = ${mealPlansId}
+    `;
+}
+
+// DEVICE LOCATIONS
 export type DeviceLocationRow = {
     deviceId: string;
     name: string;
@@ -192,128 +509,93 @@ export type DeviceLocationRow = {
 
 export async function qryGetLastKnownDeviceLocation(): Promise<DeviceLocationRow[]> {
     return (await sql`
-        SELECT d.id             as "deviceId",
-
+        select d.devices_id                  as "deviceId",
                d.name,
                d.platform,
                json_build_object(
                        'latitude', l.latitude,
                        'longitude', l.longitude,
-                       'accuracy', l."horizontalAccuracy",
-                       'timestamp', l."deviceTimestamp"
-               )                AS location,
-               l."batteryLevel" AS battery,
-               l."isCharging"   AS charging
-        FROM devices d
-                 LEFT JOIN LATERAL (
-            SELECT *
-            FROM locations
-            WHERE locations."deviceId" = d.id
-            ORDER BY "deviceTimestamp" DESC
-                LIMIT 1
-    ) l
-        ON true;
+                       'accuracy', l.horizontal_accuracy,
+                       'timestamp', l.device_timestamp
+               )                     as location,
+               l.battery_level       as battery,
+               l.is_charging         as charging
+        from devices d
+                 left join lateral (
+            select *
+            from locations
+            where locations.device_id = d.devices_id
+            order by device_timestamp desc
+                limit 1
+            ) l on true
     `) as DeviceLocationRow[];
 }
 
 export type locationType = {
-    deviceId?: string;
+    device_id?: string;
     latitude?: number;
     longitude?: number;
     altitude?: number;
-    horizontalAccuracy?: number;
-    verticalAccuracy?: number;
+    horizontal_accuracy?: number;
+    vertical_accuracy?: number;
     speed?: number;
     course?: number;
-    batteryLevel?: number;
-    isCharging?: boolean;
+    battery_level?: number;
+    is_charging?: boolean;
     platform?: string;
-    deviceModel?: string;
-    deviceName?: string;
-    systemVersion?: string;
-    deviceTimestamp?: Date;
-    receivedAt?: Date;
-    networkType?: string;
-    isMockLocation?: boolean;
+    device_model?: string;
+    device_name?: string;
+    system_version?: string;
+    device_timestamp?: Date;
 };
 
 export async function qryAddDeviceLocation({
-    deviceId,
+    device_id,
     latitude,
     longitude,
     altitude,
-    horizontalAccuracy,
-    verticalAccuracy,
+    horizontal_accuracy,
+    vertical_accuracy,
     speed,
     course,
-    batteryLevel,
-    isCharging,
+    battery_level,
+    is_charging,
     platform,
-    deviceModel,
-    deviceName,
-    systemVersion,
-    deviceTimestamp,
-    // receivedAt,
-    // networkType,
-    // isMockLocation,
+    device_model,
+    device_name,
+    system_version,
+    device_timestamp,
 }: locationType) {
     await sql`
-        INSERT INTO locations ("deviceId",
+        insert into locations (device_id,
                                latitude,
                                longitude,
                                altitude,
-                               "horizontalAccuracy",
-                               "verticalAccuracy",
+                               horizontal_accuracy,
+                               vertical_accuracy,
                                speed,
                                course,
-                               "batteryLevel",
-                               "isCharging",
+                               battery_level,
+                               is_charging,
                                platform,
-                               "deviceModel",
-                               "deviceName",
-                               "systemVersion",
-                               "deviceTimestamp"
-            -- "receivedAt",
-            -- "networkType",
-            -- "isMockLocation"
-        )
-        VALUES (${deviceId},
+                               device_model,
+                               device_name,
+                               system_version,
+                               device_timestamp)
+        values (${device_id},
                 ${latitude},
                 ${longitude},
                 ${altitude},
-                ${horizontalAccuracy},
-                ${verticalAccuracy},
+                ${horizontal_accuracy},
+                ${vertical_accuracy},
                 ${speed},
                 ${course},
-                ${batteryLevel},
-                ${isCharging},
+                ${battery_level},
+                ${is_charging},
                 ${platform},
-                ${deviceModel},
-                ${deviceName},
-                ${systemVersion},
-                ${deviceTimestamp}
-                   -- receivedAt,
-                   -- networkType,
-                   -- isMockLocation
-               )
+                ${device_model},
+                ${device_name},
+                ${system_version},
+                ${device_timestamp})
     `;
-
-    // const x = {
-    //     altitude: 0,
-    //     appVersion: '1.0.0',
-    //     battery: -1,
-    //     charging: false,
-    //     course: 0,
-    //     deviceId: 'F4CA2524-DE7F-40B0-9A1A-CEBDCF4F324D',
-    //     deviceModel: 'iPhone',
-    //     deviceName: 'iPhone 17 Pro',
-    //     horizontalAccuracy: 5,
-    //     latitude: 37.785834,
-    //     longitude: -122.406417,
-    //     platform: 'iOS',
-    //     speed: 0,
-    //     systemVersion: '26.2',
-    //     timestamp: '2026-07-31T15:13:44Z',
-    //     verticalAccuracy: -1,
-    // };
 }

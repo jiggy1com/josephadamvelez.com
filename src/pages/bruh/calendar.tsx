@@ -1,5 +1,11 @@
+import dynamic from 'next/dynamic';
 import { BruhNav } from '@/components/bruh/BruhNav';
-import { BruhCalendar } from '@/components/bruh/BruhCalendar';
+
+// FullCalendar accesses window on mount — keep it out of SSR.
+const BruhCalendar = dynamic(
+    () => import('@/components/bruh/BruhCalendar').then((mod) => mod.BruhCalendar),
+    { ssr: false },
+);
 
 export function getServerSideProps() {
     return {

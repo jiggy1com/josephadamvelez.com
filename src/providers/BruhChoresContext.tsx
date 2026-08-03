@@ -1,59 +1,45 @@
-// ChoresContext.tsx
+// ChoresContext (user-facing label stays "chores"; internals renamed to tasks/profiles).
 
 import { createContext, useContext, ReactNode, useState } from 'react';
-import { KidChoreList } from '@/utils/adminQueries';
+import { ProfileWithTasks } from '@/utils/adminQueries';
 
 type ChoresData = {
-    kidChoreListByKidIdGrouped: KidChoreList[];
+    profilesWithTasks: ProfileWithTasks[];
 };
 
 type ChoresContextType = {
     data: ChoresData;
-    toggleChoreStatus: (kidchoreid: number, status: boolean) => void;
+    toggleChoreStatus: (profilesTasksId: number, completed: boolean) => void;
     fetchChoreStatus?: () => Promise<void>;
 };
 
 const ChoresContext = createContext<ChoresContextType | null>(null);
 
 type ChoresProviderProps = {
-    data: {
-        kidChoreListByKidIdGrouped: KidChoreList[];
-    };
+    data: ChoresData;
     children: ReactNode;
 };
 
 export function ChoresProvider({ data, children }: ChoresProviderProps) {
     const [state, setState] = useState<ChoresData>(data);
 
-    const toggleChoreStatus = (kidchoreid: number, completed: boolean) => {
-        fetch('/api/bruh/update-chore-status', {
+    const toggleChoreStatus = (profilesTasksId: number, completed: boolean) => {
+        fetch('/api/bruh/update-task-status', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                kidchoreid,
-                completed,
-            }),
-        }).then(async (res) => {
-            // Handle response if needed
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ profilesTasksId, completed }),
+        }).then(async () => {
             await fetchChoreStatus();
         });
     };
+
     const fetchChoreStatus = async () => {
         try {
-            const response = await fetch('/api/bruh/get-chore-status').then((res) => {
-                return res.json();
-            });
-
-            setState((prevState) => {
-                return {
-                    ...prevState,
-                    kidChoreListByKidIdGrouped: response.data,
-                };
-            });
+            const response = await fetch('/api/bruh/get-task-status').then((res) => res.json());
+            setState((prev) => ({ ...prev, profilesWithTasks: response.data }));
         } catch (e) {}
     };
+
     return (
         <ChoresContext.Provider value={{ data: state, toggleChoreStatus, fetchChoreStatus }}>
             {children}
@@ -63,10 +49,8 @@ export function ChoresProvider({ data, children }: ChoresProviderProps) {
 
 export function useChores() {
     const context = useContext(ChoresContext);
-
     if (!context) {
         throw new Error('useChores must be used within ChoresProvider');
     }
-
     return context;
 }

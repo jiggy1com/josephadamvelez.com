@@ -1,74 +1,73 @@
 import { useChores } from '@/providers/BruhChoresContext';
 import { Flex } from '@/components/flexbox/Flex';
-import { FlexItem } from '@/components/flexbox/FlexItem';
-import { KidChoreWithStatus } from '@/utils/adminQueries';
+import { Grid } from '@/components/grid/Grid';
+import { GridItem } from '@/components/grid/GridItem';
+import { Card } from '@/components/card/Card';
+import { ProfilesTasksWithStatus } from '@/utils/adminQueries';
 import { Section } from '@/components/section/Section';
-import { useFlexDirection } from '@/hooks/useFlexDirection';
+import { BreakpointName, useBreakpoint } from '@/hooks/useBreakpoint';
+
+const columnsByBreakpoint: Record<BreakpointName, number> = {
+    mobile: 1,
+    mobileLandscape: 1,
+    tablet: 2,
+    tabletLandscape: 2,
+    desktop: 3,
+    desktopWide: 4,
+};
 
 export function BruhChores() {
     const chores = useChores();
-    const kidChoreListByKidIdGrouped = chores.data.kidChoreListByKidIdGrouped;
+    const profilesWithTasks = chores.data.profilesWithTasks;
     const toggleChoreStatus = chores.toggleChoreStatus;
+    const breakpoint = useBreakpoint();
+    const columns = columnsByBreakpoint[breakpoint];
 
-    const flexDirection = useFlexDirection();
-
-    const garbageSpacer = [];
-    for (let i = 1; i <= 10; i++) {
-        garbageSpacer.push(<p key={i}>&nbsp;</p>);
-    }
     return (
         <>
-            <Section id={'bruh-chores'}>
-                <article>
-                    <h1>Bruh Chores</h1>
-                </article>
+            <Section id={'bruh-chores'} removeArticle={true}>
+                <h1>Bruh Tasks</h1>
             </Section>
-            <Section id={'chores'}>
-                <article>
-                    <Flex flexDirection={flexDirection} rowGap={'20px'} gap={'20px'}>
-                        {kidChoreListByKidIdGrouped.map((kidChoreList) => (
-                            <FlexItem key={kidChoreList.kidid} flexGrow={1}>
-                                <h2
-                                    style={{
-                                        marginBottom: '10px',
-                                    }}>
-                                    {kidChoreList.name}
-                                </h2>
-                                {!Array.isArray(kidChoreList.chores) && (
-                                    <p>No chores assigned. Enjoy your day off.</p>
+            <Section id={'chores'} removeArticle={true}>
+                <Grid
+                    columnGap={'10px'}
+                    rowGap={'20px'}
+                    gridTemplateColumns={`repeat(${columns}, 1fr)`}>
+                    {profilesWithTasks.map((profile) => (
+                        <GridItem key={profile.profilesId}>
+                            <Card header={profile.name} trimHeader>
+                                {!Array.isArray(profile.tasks) && (
+                                    <p>No tasks assigned. Enjoy your day off.</p>
                                 )}
-                                {Array.isArray(kidChoreList.chores) &&
-                                    kidChoreList.chores.map((chore: KidChoreWithStatus) => {
-                                        const id = `choreId-${kidChoreList.kidid}-${chore.choreid}`;
-                                        return (
-                                            <div
-                                                key={chore.choreid}
-                                                style={{
-                                                    paddingTop: '10px',
-                                                }}>
-                                                <input
-                                                    checked={chore.completed}
-                                                    type="checkbox"
-                                                    id={id}
-                                                    name={'choreId'}
-                                                    value={chore.choreid}
-                                                    onChange={() => {
-                                                        toggleChoreStatus(
-                                                            chore.kidchoreid,
-                                                            !chore.completed,
-                                                        );
-                                                    }}
-                                                />
-                                                <label htmlFor={id}>{chore.name}</label>
-                                            </div>
-                                        );
-                                    })}
-                            </FlexItem>
-                        ))}
-                    </Flex>
-                    {garbageSpacer}
-                    {/*<pre>{JSON.stringify(chores, null, 2)}</pre>*/}
-                </article>
+                                {Array.isArray(profile.tasks) && (
+                                    <div className={'stack'}>
+                                        {profile.tasks.map((task: ProfilesTasksWithStatus) => {
+                                            const id = `taskId-${profile.profilesId}-${task.tasksId}`;
+                                            return (
+                                                <Flex key={task.tasksId} alignItems={'center'}>
+                                                    <input
+                                                        checked={task.completed}
+                                                        type={'checkbox'}
+                                                        id={id}
+                                                        name={'taskId'}
+                                                        value={task.tasksId}
+                                                        onChange={() => {
+                                                            toggleChoreStatus(
+                                                                task.profilesTasksId,
+                                                                !task.completed,
+                                                            );
+                                                        }}
+                                                    />
+                                                    <label htmlFor={id}>{task.name}</label>
+                                                </Flex>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </Card>
+                        </GridItem>
+                    ))}
+                </Grid>
             </Section>
         </>
     );
