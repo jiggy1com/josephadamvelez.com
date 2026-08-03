@@ -6,7 +6,7 @@ function sanitizeDays(input: unknown): DayOfWeek[] | null {
     if (!Array.isArray(input)) return null;
     const valid = input.filter(
         (d): d is DayOfWeek =>
-            typeof d === 'string' && (DAYS_OF_WEEK as string[]).includes(d),
+            typeof d === 'string' && (DAYS_OF_WEEK as readonly string[]).includes(d),
     );
     return valid.length === 0 ? null : valid;
 }

@@ -28,8 +28,6 @@ export async function getServerSideProps() {
 export default function Map({ data }: BruhMapProps) {
     return (
         <Flex flexDirection="column" height={VIEWPORT_HEIGHT_MINUS_NAV}>
-            <FlexItem>
-            </FlexItem>
             <FlexItem flexGrow={1} minHeight="0">
                 <BruhMap getLastKnownDeviceLocation={data} />
             </FlexItem>

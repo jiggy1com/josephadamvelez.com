@@ -26,6 +26,12 @@ export function NavItem({ navItem, onNavigate }: NavItemProps) {
     const router = useRouter();
     const activeClass = navItem.active ? styles.active : '';
 
+    // Invariant: Nav.tsx only renders NavItem for leaves (items without children).
+    // Leaves always set `target`, but the shared NavItemType marks it optional
+    // for group-header items — bail here so the compiler + runtime both stay honest.
+    if (!navItem.target) return null;
+    const target = navItem.target;
+
     const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
         event.preventDefault();
         event.stopPropagation();
@@ -35,13 +41,13 @@ export function NavItem({ navItem, onNavigate }: NavItemProps) {
 
         const isHash = (event.target as HTMLAnchorElement).href.includes('#');
         if (!isHash) {
-            router.push(navItem.target);
+            router.push(target);
             return;
         }
 
-        const targetElement = document.querySelector(navItem.target);
+        const targetElement = document.querySelector(target);
         if (targetElement) {
-            document.location.hash = navItem.target;
+            document.location.hash = target;
             window.scrollTo({
                 behavior: 'smooth',
                 top: targetElement.getBoundingClientRect().top + window.scrollY - 48,
@@ -50,7 +56,7 @@ export function NavItem({ navItem, onNavigate }: NavItemProps) {
     };
 
     return (
-        <a href={navItem.target} className={activeClass} onClick={handleClick}>
+        <a href={target} className={activeClass} onClick={handleClick}>
             {navItem.name}
         </a>
     );
