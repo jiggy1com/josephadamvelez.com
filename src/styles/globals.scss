@@ -381,4 +381,130 @@ body {
 		}
 	}
 
+	// FullCalendar — override defaults so the light-theme baseline plays nice with our
+	// dark admin sections. Uses currentColor and design tokens so it adapts if we ever
+	// theme differently.
+	.fc {
+		// Force the calendar to inherit color from the parent section instead of
+		// FullCalendar's hardcoded blacks.
+		color: inherit;
+
+		// Grid lines and cell borders — use the same subtle-border trick as .card.
+		--fc-border-color: var(--color-border-subtle);
+		// Day headers, "today" highlight, etc.
+		--fc-page-bg-color: transparent;
+		--fc-neutral-bg-color: var(--color-surface-chrome);
+		--fc-neutral-text-color: inherit;
+		// Buttons in the header toolbar
+		--fc-button-bg-color: var(--color-primary);
+		--fc-button-border-color: var(--button-border);
+		--fc-button-text-color: var(--button-fg);
+		--fc-button-hover-bg-color: var(--color-primary-hover);
+		--fc-button-hover-border-color: var(--button-border);
+		--fc-button-active-bg-color: var(--color-primary-hover);
+		--fc-button-active-border-color: var(--button-border);
+		// "Today" cell tint
+		--fc-today-bg-color: var(--color-surface-hover);
+
+		// Toolbar buttons — undo global .button styling that would swallow FullCalendar's own.
+		.fc-button {
+			text-transform: none;
+			font-weight: normal;
+			padding: 6px 12px;
+			border-radius: 6px;
+		}
+
+		// Meal event pill — gold, matching --color-secondary
+		.fc-event-meal {
+			background-color: var(--color-secondary);
+			border-color: var(--color-secondary);
+			color: var(--color-secondary-fg);
+			cursor: pointer;
+		}
+	}
+
+	// Calendar page — sidebar of draggable meals + main calendar + trash zone below
+	.calendar-layout {
+		display: grid;
+		gap: 20px;
+		grid-template-columns: 1fr;
+		@include m.mediaMin('tabletLandscape') {
+			grid-template-columns: 220px 1fr;
+		}
+	}
+
+	.calendar-sidebar {
+		padding: 15px;
+		border: 1px solid var(--color-border-subtle);
+		border-radius: 10px;
+		background-color: var(--color-surface-chrome);
+	}
+
+	.calendar-sidebar-title {
+		margin-bottom: 12px;
+		font-size: 1em;
+		font-weight: bold;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		opacity: 0.7;
+	}
+
+	.calendar-sidebar-empty {
+		font-size: 0.9em;
+		opacity: 0.7;
+	}
+
+	.calendar-sidebar-list {
+		list-style: none;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		padding: 0;
+		margin: 0;
+	}
+
+	.meal-draggable {
+		padding: 8px 12px;
+		background-color: var(--color-secondary);
+		color: var(--color-secondary-fg);
+		border-radius: 6px;
+		cursor: grab;
+		user-select: none;
+		font-weight: bold;
+		transition: transform 100ms ease, box-shadow 100ms ease;
+
+		&:hover {
+			transform: translateY(-1px);
+			box-shadow: 0 2px 6px var(--overlay-white-15);
+		}
+
+		&:active {
+			cursor: grabbing;
+		}
+	}
+
+	.calendar-trash {
+		margin-top: 20px;
+		padding: 20px;
+		border: 2px dashed var(--color-border-subtle);
+		border-radius: 10px;
+		text-align: center;
+		display: flex;
+		gap: 10px;
+		align-items: center;
+		justify-content: center;
+		color: inherit;
+		opacity: 0.6;
+		transition: opacity 150ms ease, border-color 150ms ease;
+
+		.material-symbols-outlined {
+			font-size: 1.5em;
+		}
+
+		&:hover {
+			opacity: 1;
+			border-color: var(--color-error);
+		}
+	}
+
 }

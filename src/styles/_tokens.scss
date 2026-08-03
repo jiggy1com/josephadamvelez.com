@@ -61,10 +61,12 @@
     --color-surface-alt:    var(--gray-200);   // "the light band" on odd sections
     --color-fg-on-alt:      var(--black);
 
-    // Chrome
-    --color-surface-chrome: var(--overlay-white-04);
-    --color-surface-hover:  var(--overlay-white-05);
-    --color-border-subtle:  var(--overlay-white-15);
+    // Chrome — "subtle" tints use currentColor so they adapt to whatever section they
+    // sit inside. On a dark section (color: white), they render as faint white overlays;
+    // on a light section (color: black), faint dark overlays. No manual theming needed.
+    --color-surface-chrome: color-mix(in srgb, currentColor 6%, transparent);
+    --color-surface-hover:  color-mix(in srgb, currentColor 8%, transparent);
+    --color-border-subtle:  color-mix(in srgb, currentColor 25%, transparent);
     --color-border-strong:  var(--gray-500);
 
     // Link on light backgrounds

@@ -321,6 +321,177 @@ export async function qryRemoveAllProfilesTasks() {
     `;
 }
 
+// MEALS CRUD
+export type Meal = {
+    mealId: number;
+    name: string;
+};
+
+export async function qryGetMealList(): Promise<Meal[]> {
+    return (await sql`
+        select meal_id as "mealId",
+               name
+        from meals
+        order by lower(name)
+    `) as Meal[];
+}
+
+export async function qryGetMealById(mealId: number): Promise<Meal | undefined> {
+    const rows = (await sql`
+        select meal_id as "mealId",
+               name
+        from meals
+        where meal_id = ${mealId}
+    `) as Meal[];
+    return rows[0];
+}
+
+export async function qryAddMeal(name: string) {
+    return sql`
+        insert into meals (name)
+        values (${name})
+        returning meal_id as "mealId", name
+    `;
+}
+
+export async function qryUpdateMeal(mealId: number, name: string) {
+    return sql`
+        update meals
+        set name = ${name}
+        where meal_id = ${mealId}
+        returning meal_id as "mealId", name
+    `;
+}
+
+export async function qryDeleteMeal(mealId: number) {
+    return sql`
+        delete
+        from meals
+        where meal_id = ${mealId}
+    `;
+}
+
+// ICS FEEDS CRUD
+export type IcsFeed = {
+    icsFeedId: number;
+    name: string;
+    url: string;
+    color: string | null;
+    active: boolean;
+};
+
+export async function qryGetIcsFeedList(): Promise<IcsFeed[]> {
+    return (await sql`
+        select ics_feed_id as "icsFeedId",
+               name,
+               url,
+               color,
+               active
+        from ics_feeds
+        order by lower(name)
+    `) as IcsFeed[];
+}
+
+export async function qryGetIcsFeedById(icsFeedId: number): Promise<IcsFeed | undefined> {
+    const rows = (await sql`
+        select ics_feed_id as "icsFeedId",
+               name,
+               url,
+               color,
+               active
+        from ics_feeds
+        where ics_feed_id = ${icsFeedId}
+    `) as IcsFeed[];
+    return rows[0];
+}
+
+export async function qryAddIcsFeed(
+    name: string,
+    url: string,
+    color: string | null,
+    active: boolean,
+) {
+    return sql`
+        insert into ics_feeds (name, url, color, active)
+        values (${name}, ${url}, ${color}, ${active})
+        returning ics_feed_id as "icsFeedId", name, url, color, active
+    `;
+}
+
+export async function qryUpdateIcsFeed(
+    icsFeedId: number,
+    name: string,
+    url: string,
+    color: string | null,
+    active: boolean,
+) {
+    return sql`
+        update ics_feeds
+        set name   = ${name},
+            url    = ${url},
+            color  = ${color},
+            active = ${active}
+        where ics_feed_id = ${icsFeedId}
+        returning ics_feed_id as "icsFeedId", name, url, color, active
+    `;
+}
+
+export async function qryDeleteIcsFeed(icsFeedId: number) {
+    return sql`
+        delete
+        from ics_feeds
+        where ics_feed_id = ${icsFeedId}
+    `;
+}
+
+// MEAL PLANS
+// A "meal plan" is the scheduled appearance of a meal on a specific date + slot.
+// The (date, slot) UNIQUE constraint means one meal per slot per day — upsert
+// handles both "add to empty slot" and "drop onto occupied slot to replace".
+export type MealSlot = 'breakfast' | 'lunch' | 'dinner';
+
+export type MealPlan = {
+    mealPlansId: number;
+    mealId: number;
+    mealName: string;
+    date: string;  // YYYY-MM-DD — cast to text so we bypass Date object timezone weirdness
+    slot: MealSlot;
+};
+
+export async function qryGetMealPlansInRange(from: string, to: string): Promise<MealPlan[]> {
+    return (await sql`
+        select mp.meal_plans_id                    as "mealPlansId",
+               mp.meal_id                          as "mealId",
+               m.name                              as "mealName",
+               to_char(mp.date, 'YYYY-MM-DD')      as "date",
+               mp.slot
+        from meal_plans mp
+                 inner join meals m on m.meal_id = mp.meal_id
+        where mp.date between ${from} and ${to}
+        order by mp.date, mp.slot
+    `) as MealPlan[];
+}
+
+export async function qryUpsertMealPlan(mealId: number, date: string, slot: MealSlot) {
+    return sql`
+        insert into meal_plans (meal_id, date, slot)
+        values (${mealId}, ${date}, ${slot})
+        on conflict (date, slot) do update set meal_id = excluded.meal_id
+        returning meal_plans_id                as "mealPlansId",
+                  meal_id                      as "mealId",
+                  to_char(date, 'YYYY-MM-DD')  as "date",
+                  slot
+    `;
+}
+
+export async function qryDeleteMealPlan(mealPlansId: number) {
+    return sql`
+        delete
+        from meal_plans
+        where meal_plans_id = ${mealPlansId}
+    `;
+}
+
 // DEVICE LOCATIONS
 export type DeviceLocationRow = {
     deviceId: string;

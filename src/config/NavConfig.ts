@@ -109,6 +109,24 @@ export const bruhAdminNavItems = [
         requiresAuth: true,
     },
     {
+        name: 'Meals',
+        target: '/bruh/admin/meals/list',
+        active: false,
+        requiresAuth: true,
+    },
+    {
+        name: 'Calendar',
+        target: '/bruh/admin/calendar',
+        active: false,
+        requiresAuth: true,
+    },
+    {
+        name: 'Calendars',
+        target: '/bruh/admin/ics-feeds/list',
+        active: false,
+        requiresAuth: true,
+    },
+    {
         name: 'Rewards',
         target: '/bruh/admin/rewards',
         active: false,
