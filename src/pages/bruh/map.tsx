@@ -1,4 +1,3 @@
-import { BruhNav } from '@/components/bruh/BruhNav';
 import { Flex } from '@/components/flexbox/Flex';
 import { FlexItem } from '@/components/flexbox/FlexItem';
 import { VIEWPORT_HEIGHT_MINUS_NAV } from '@/constants/layout';
@@ -30,7 +29,6 @@ export default function Map({ data }: BruhMapProps) {
     return (
         <Flex flexDirection="column" height={VIEWPORT_HEIGHT_MINUS_NAV}>
             <FlexItem>
-                <BruhNav />
             </FlexItem>
             <FlexItem flexGrow={1} minHeight="0">
                 <BruhMap getLastKnownDeviceLocation={data} />

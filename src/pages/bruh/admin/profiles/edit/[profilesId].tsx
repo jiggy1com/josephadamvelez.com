@@ -1,7 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/router';
 import { GetServerSideProps } from 'next';
-import { BruhNav } from '@/components/bruh/BruhNav';
 import { Section } from '@/components/section/Section';
 import { Alert } from '@/components/alert/Alert';
 import { Toggle } from '@/components/toggle/Toggle';
@@ -79,7 +78,6 @@ export default function BruhAdminProfilesEdit({ profile }: Props) {
 
     return (
         <>
-            <BruhNav />
             <Section id={'bruh-admin-profiles-edit'} className={'admin-section'}>
                 <h1>Edit Profile</h1>
             </Section>

@@ -4,42 +4,40 @@ import { GetServerSideProps } from 'next';
 import { Section } from '@/components/section/Section';
 import { Alert } from '@/components/alert/Alert';
 import { Toggle } from '@/components/toggle/Toggle';
-import { qryGetIcsFeedById } from '@/utils/adminQueries';
-import type { IcsFeed } from '@/utils/adminQueries';
+import { qryGetListById } from '@/utils/adminQueries';
+import type { ListRow } from '@/utils/adminQueries';
 import { useFormSubmit } from '@/hooks/useFormSubmit';
 
-type Props = { feed: IcsFeed };
+type Props = { list: ListRow };
 
 type Payload = {
-    icsFeedId: number;
+    listsId: number;
     name: string;
-    url: string;
     color: string;
-    active: boolean;
+    isPublic: boolean;
 };
 
 export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
-    const icsFeedId = Number(ctx.params?.icsFeedId);
-    if (!icsFeedId) return { notFound: true };
-    const feed = await qryGetIcsFeedById(icsFeedId);
-    if (!feed) return { notFound: true };
-    return { props: { feed } };
+    const listsId = Number(ctx.params?.listsId);
+    if (!listsId) return { notFound: true };
+    const list = await qryGetListById(listsId);
+    if (!list) return { notFound: true };
+    return { props: { list } };
 };
 
-export default function BruhAdminIcsFeedsEdit({ feed }: Props) {
+export default function BruhAdminListsEdit({ list }: Props) {
     const router = useRouter();
-    const [name, setName] = useState(feed.name);
-    const [url, setUrl] = useState(feed.url);
-    const [color, setColor] = useState(feed.color ?? '#008080');
-    const [active, setActive] = useState(feed.active);
+    const [name, setName] = useState(list.name);
+    const [color, setColor] = useState(list.color ?? '#d4a017');
+    const [isPublic, setIsPublic] = useState(list.isPublic);
 
     const { submit, submitting, alert } = useFormSubmit<Payload>(
-        '/api/bruh/admin/ics-feeds/update',
+        '/api/bruh/admin/lists/update',
         {
-            successMessage: 'Calendar updated',
+            successMessage: 'List updated',
             onSuccess: () => {
                 setTimeout(() => {
-                    void router.push('/bruh/admin/ics-feeds/list');
+                    void router.push('/bruh/admin/lists/list');
                 }, 1000);
             },
         },
@@ -47,15 +45,15 @@ export default function BruhAdminIcsFeedsEdit({ feed }: Props) {
 
     const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        await submit({ icsFeedId: feed.icsFeedId, name, url, color, active });
+        await submit({ listsId: list.listsId, name, color, isPublic });
     };
 
     return (
         <>
-            <Section id={'bruh-admin-ics-feeds-edit'} className={'admin-section'}>
-                <h1>Edit Calendar</h1>
+            <Section id={'bruh-admin-lists-edit'} className={'admin-section'}>
+                <h1>Edit List</h1>
             </Section>
-            <Section id={'bruh-admin-ics-feeds-edit-form'} className={'admin-section'}>
+            <Section id={'bruh-admin-lists-edit-form'} className={'admin-section'}>
                 <Alert success={alert.success} message={alert.message} />
                 <form className={'admin-form'} onSubmit={(e) => void onSubmit(e)}>
                     <div>
@@ -65,17 +63,6 @@ export default function BruhAdminIcsFeedsEdit({ feed }: Props) {
                             value={name}
                             placeholder={'Name'}
                             onChange={(e) => setName(e.target.value)}
-                            required
-                        />
-                    </div>
-                    <div>
-                        <input
-                            id={'url'}
-                            type={'url'}
-                            value={url}
-                            placeholder={'ICS URL, ends in .ics (not the shareable HTML link)'}
-                            onChange={(e) => setUrl(e.target.value)}
-                            autoComplete={'off'}
                             required
                         />
                     </div>
@@ -106,13 +93,17 @@ export default function BruhAdminIcsFeedsEdit({ feed }: Props) {
                                 }}
                             />
                         </label>
-                        <Toggle checked={active} onChange={setActive} label={'Active'} />
+                        <Toggle
+                            checked={isPublic}
+                            onChange={setIsPublic}
+                            label={'Public (kids can see)'}
+                        />
                     </div>
                     <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
                         <button
                             type={'button'}
                             className={'button'}
-                            onClick={() => void router.push('/bruh/admin/ics-feeds/list')}>
+                            onClick={() => void router.push('/bruh/admin/lists/list')}>
                             Cancel
                         </button>
                         <button type={'submit'} className={'button'} disabled={submitting}>

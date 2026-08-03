@@ -1,7 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/router';
 import { GetServerSideProps } from 'next';
-import { BruhNav } from '@/components/bruh/BruhNav';
 import { Section } from '@/components/section/Section';
 import { Alert } from '@/components/alert/Alert';
 import { qryGetMealById } from '@/utils/adminQueries';
@@ -40,14 +39,12 @@ export default function BruhAdminMealsEdit({ meal }: Props) {
 
     return (
         <>
-            <BruhNav />
             <Section id={'bruh-admin-meals-edit'} className={'admin-section'}>
                 <h1>Edit Meal</h1>
+            </Section>
+            <Section id={'bruh-admin-meals-edit-form'} className={'admin-section'}>
                 <Alert success={alert.success} message={alert.message} />
                 <form className={'admin-form'} onSubmit={(e) => void onSubmit(e)}>
-                    <div>
-                        <label htmlFor={'name'}>Name</label>
-                    </div>
                     <div>
                         <input
                             id={'name'}

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { BruhNav } from '@/components/bruh/BruhNav';
 import { Section } from '@/components/section/Section';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { Alert, AlertType } from '@/components/alert/Alert';
@@ -62,7 +61,6 @@ export default function BruhAdminProfilesList() {
 
     return (
         <>
-            <BruhNav />
             <Section
                 id={'bruh-admin-profiles-list-header'}
                 className={'admin-section'}

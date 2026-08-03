@@ -12,15 +12,21 @@ export type NavItemType = {
 
 type NavItemProps = {
     navItem: NavItemType;
+    // Called before navigation so the parent Nav can close the mobile menu.
+    onNavigate?: () => void;
 };
 
-export function NavItem({ navItem }: NavItemProps) {
+export function NavItem({ navItem, onNavigate }: NavItemProps) {
     const router = useRouter();
     const activeClass = navItem.active ? styles.active : '';
 
     const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
         event.preventDefault();
         event.stopPropagation();
+        // Nav now persists across navigations (lives in _app.tsx), so closing the
+        // menu on any tap is safe — no more unmount/remount flicker.
+        onNavigate?.();
+
         const isHash = (event.target as HTMLAnchorElement).href.includes('#');
         if (!isHash) {
             router.push(navItem.target);

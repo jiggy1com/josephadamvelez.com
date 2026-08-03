@@ -1,6 +1,13 @@
 import { neon } from '@neondatabase/serverless';
+import { DAYS_OF_WEEK, type DayOfWeek } from '@/constants/days';
 
 const sql = neon(process.env.DATABASE_URL!);
+
+// Re-export so existing server-side consumers that already import from here keep working.
+// Client components must import from '@/constants/days' directly — pulling this module
+// into the browser bundle would execute `neon()` at load time and fail (no DATABASE_URL).
+export { DAYS_OF_WEEK };
+export type { DayOfWeek };
 
 // TABLES
 export type Profile = {
@@ -27,6 +34,8 @@ export type ProfileInput = {
 export type Task = {
     tasksId: number;
     name: string;
+    // null (or empty) = active every day. Populated = only active on these days.
+    daysOfWeek: DayOfWeek[] | null;
 };
 
 export type ProfilesTasks = {
@@ -222,10 +231,12 @@ export async function qryDeleteProfile(profilesId: number) {
 }
 
 // TASKS CRUD
+// daysOfWeek is a nullable array of day-of-week strings; null means "active every day".
 export async function qryGetTaskList(): Promise<Task[]> {
     return (await sql`
-        select tasks_id as "tasksId",
-               name
+        select tasks_id     as "tasksId",
+               name,
+               days_of_week as "daysOfWeek"
         from tasks
         order by lower(name)
     `) as Task[];
@@ -233,28 +244,34 @@ export async function qryGetTaskList(): Promise<Task[]> {
 
 export async function qryGetTaskById(tasksId: number): Promise<Task | undefined> {
     const rows = (await sql`
-        select tasks_id as "tasksId",
-               name
+        select tasks_id     as "tasksId",
+               name,
+               days_of_week as "daysOfWeek"
         from tasks
         where tasks_id = ${tasksId}
     `) as Task[];
     return rows[0];
 }
 
-export async function qryAddTask(name: string) {
+export async function qryAddTask(name: string, daysOfWeek: DayOfWeek[] | null) {
     return sql`
-        insert into tasks (name)
-        values (${name})
-        returning tasks_id as "tasksId", name
+        insert into tasks (name, days_of_week)
+        values (${name}, ${daysOfWeek})
+        returning tasks_id as "tasksId", name, days_of_week as "daysOfWeek"
     `;
 }
 
-export async function qryUpdateTask(tasksId: number, name: string) {
+export async function qryUpdateTask(
+    tasksId: number,
+    name: string,
+    daysOfWeek: DayOfWeek[] | null,
+) {
     return sql`
         update tasks
-        set name = ${name}
+        set name         = ${name},
+            days_of_week = ${daysOfWeek}
         where tasks_id = ${tasksId}
-        returning tasks_id as "tasksId", name
+        returning tasks_id as "tasksId", name, days_of_week as "daysOfWeek"
     `;
 }
 
@@ -267,7 +284,12 @@ export async function qryDeleteTask(tasksId: number) {
 }
 
 // PROFILES_TASKS (many-to-many)
-export async function qryGetProfilesTasksByProfileGrouped(): Promise<ProfileWithTasks[]> {
+// filterByToday=true excludes tasks whose days_of_week is set and doesn't include today's
+// day. Kids-facing views use this so they only see what's applicable right now; the admin
+// assign views pass false so every assignment is visible regardless of day.
+export async function qryGetProfilesTasksByProfileGrouped(
+    filterByToday: boolean = false,
+): Promise<ProfileWithTasks[]> {
     return (await sql`
         select p.profiles_id as "profilesId",
                p.name,
@@ -282,8 +304,27 @@ export async function qryGetProfilesTasksByProfileGrouped(): Promise<ProfileWith
         from profiles p
                  left join profiles_tasks pt on pt.profiles_id = p.profiles_id and pt.active = true
                  left join tasks t on t.tasks_id = pt.tasks_id
+                     and (
+                         ${filterByToday}::boolean = false
+                         or t.days_of_week is null
+                         or cardinality(t.days_of_week) = 0
+                         or to_char(current_date, 'dy') = any(t.days_of_week)
+                     )
         group by p.profiles_id, p.name
     `) as ProfileWithTasks[];
+}
+
+// Returns the flat set of active (profilesId, tasksId) links — used by the matrix
+// view for O(1) checkbox lookups without pulling the joined task metadata.
+export async function qryGetActiveProfilesTasksLinks(): Promise<
+    { profilesId: number; tasksId: number }[]
+> {
+    return (await sql`
+        select profiles_id as "profilesId",
+               tasks_id    as "tasksId"
+        from profiles_tasks
+        where active = true
+    `) as { profilesId: number; tasksId: number }[];
 }
 
 export async function qryAddOrRemoveProfilesTasks(
@@ -489,6 +530,168 @@ export async function qryDeleteMealPlan(mealPlansId: number) {
         delete
         from meal_plans
         where meal_plans_id = ${mealPlansId}
+    `;
+}
+
+// LISTS + LIST ITEMS
+// Lists are named collections (Grocery, Honey-Do, etc.). Items belong to a list.
+// `is_public` gates whether kids-facing UI shows the list at all.
+
+export type ListRow = {
+    listsId: number;
+    name: string;
+    color: string | null;
+    isPublic: boolean;
+};
+
+export type ListWithCounts = ListRow & {
+    itemCount: number;
+    uncheckedCount: number;
+};
+
+export type ListItem = {
+    listItemsId: number;
+    listsId: number;
+    name: string;
+    checked: boolean;
+    addedBy: number | null;
+    addedAt: string;    // ISO datetime
+    checkedAt: string | null;
+};
+
+// LIST DEFINITION CRUD
+export async function qryGetListList(): Promise<ListRow[]> {
+    return (await sql`
+        select lists_id  as "listsId",
+               name,
+               color,
+               is_public as "isPublic"
+        from lists
+        order by lower(name)
+    `) as ListRow[];
+}
+
+export async function qryGetPublicListsWithCounts(): Promise<ListWithCounts[]> {
+    return (await sql`
+        select l.lists_id  as "listsId",
+               l.name,
+               l.color,
+               l.is_public as "isPublic",
+               coalesce(counts.total, 0)::int     as "itemCount",
+               coalesce(counts.unchecked, 0)::int as "uncheckedCount"
+        from lists l
+        left join (
+            select lists_id,
+                   count(*)                                 as total,
+                   count(*) filter (where checked = false)  as unchecked
+            from list_items
+            group by lists_id
+        ) counts on counts.lists_id = l.lists_id
+        where l.is_public = true
+        order by lower(l.name)
+    `) as ListWithCounts[];
+}
+
+export async function qryGetListById(listsId: number): Promise<ListRow | undefined> {
+    const rows = (await sql`
+        select lists_id  as "listsId",
+               name,
+               color,
+               is_public as "isPublic"
+        from lists
+        where lists_id = ${listsId}
+    `) as ListRow[];
+    return rows[0];
+}
+
+export async function qryAddList(name: string, color: string | null, isPublic: boolean) {
+    return sql`
+        insert into lists (name, color, is_public)
+        values (${name}, ${color}, ${isPublic})
+        returning lists_id as "listsId", name, color, is_public as "isPublic"
+    `;
+}
+
+export async function qryUpdateList(
+    listsId: number,
+    name: string,
+    color: string | null,
+    isPublic: boolean,
+) {
+    return sql`
+        update lists
+        set name      = ${name},
+            color     = ${color},
+            is_public = ${isPublic}
+        where lists_id = ${listsId}
+        returning lists_id as "listsId", name, color, is_public as "isPublic"
+    `;
+}
+
+export async function qryDeleteList(listsId: number) {
+    return sql`
+        delete
+        from lists
+        where lists_id = ${listsId}
+    `;
+}
+
+// LIST ITEMS
+// Sort: unchecked first (oldest first — first added is first grabbed).
+// Then checked (most recently checked at top of checked section).
+export async function qryGetListItems(listsId: number): Promise<ListItem[]> {
+    return (await sql`
+        select list_items_id as "listItemsId",
+               lists_id      as "listsId",
+               name,
+               checked,
+               added_by      as "addedBy",
+               added_at      as "addedAt",
+               checked_at    as "checkedAt"
+        from list_items
+        where lists_id = ${listsId}
+        order by checked asc,
+                 case when checked then checked_at end desc,
+                 case when not checked then added_at end asc
+    `) as ListItem[];
+}
+
+export async function qryAddListItem(
+    listsId: number,
+    name: string,
+    addedBy: number | null,
+) {
+    return sql`
+        insert into list_items (lists_id, name, added_by)
+        values (${listsId}, ${name}, ${addedBy})
+        returning list_items_id as "listItemsId",
+                  lists_id      as "listsId",
+                  name,
+                  checked,
+                  added_by      as "addedBy",
+                  added_at      as "addedAt",
+                  checked_at    as "checkedAt"
+    `;
+}
+
+export async function qryToggleListItemChecked(listItemsId: number, checked: boolean) {
+    return sql`
+        update list_items
+        set checked    = ${checked},
+            checked_at = case when ${checked} then now() else null end
+        where list_items_id = ${listItemsId}
+        returning list_items_id as "listItemsId",
+                  checked,
+                  checked_at    as "checkedAt"
+    `;
+}
+
+export async function qryClearCheckedItems(listsId: number) {
+    return sql`
+        delete
+        from list_items
+        where lists_id = ${listsId}
+          and checked = true
     `;
 }
 

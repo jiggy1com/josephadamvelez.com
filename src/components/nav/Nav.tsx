@@ -1,7 +1,7 @@
 import styles from './Nav.module.scss';
 import { NavItem, NavItemType } from '@/components/nav/NavItem';
 import useHash from '@/hooks/useHash';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getFirstVisibleElement } from '@/utils/getFirstVisibleElement';
 
 export type NavProps = {
@@ -15,8 +15,7 @@ export function Nav({ navItems, title }: NavProps) {
     const currentHash = useHash();
     const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
 
-    // Derive `active` on each render from the current prop instead of mutating in state.
-    // This is what fixes the "stale nav after login" bug — the prop is now the source of truth.
+    // Derive `active` on each render from the current prop.
     const computedItems = navItems.map((item) => ({
         ...item,
         active:
@@ -25,30 +24,22 @@ export function Nav({ navItems, title }: NavProps) {
             (activeSectionId !== null && item.target === `#${activeSectionId}`),
     }));
 
-    // Close the menu whenever the hash changes (user tapped a hash link) — but not on mount.
-    const hasMounted = useRef(false);
-    useEffect(() => {
-        if (!hasMounted.current) {
-            hasMounted.current = true;
-            return;
-        }
-        setMenuOpen(false);
-    }, [currentHash]);
-
-    // Track which section is currently in view (for section-based active state on scroll).
+    // Track which section is currently in view for active-state highlighting.
+    // Deliberately does NOT touch menuOpen — scrollend fires during page navigation
+    // on Android Chrome, which would spuriously close the menu and then the fresh
+    // page mount would re-open it. Menu-close is user-driven now (see toggleMenu +
+    // closeMenu below).
     useEffect(() => {
         const handleScrollEnd = () => {
             const el = getFirstVisibleElement();
-            if (el) {
-                setActiveSectionId(el.id);
-                setMenuOpen(false);
-            }
+            if (el) setActiveSectionId(el.id);
         };
         window.addEventListener('scrollend', handleScrollEnd);
         return () => window.removeEventListener('scrollend', handleScrollEnd);
     }, []);
 
     const toggleMenu = () => setMenuOpen((prev) => !prev);
+    const closeMenu = () => setMenuOpen(false);
 
     return (
         <div className={styles.nav}>
@@ -62,12 +53,12 @@ export function Nav({ navItems, title }: NavProps) {
                     menu_open
                 </span>
             </div>
-            <a href={'#top'} className={styles.jav}>
+            <a href={'#top'} className={styles.jav} onClick={closeMenu}>
                 {title ?? 'Joseph Adam Velez'}
             </a>
             <div className={`${styles.navList} ${menuOpen ? styles.open : styles.closed}`}>
                 {computedItems.map((navItem) => {
-                    return <NavItem navItem={navItem} key={navItem.name} />;
+                    return <NavItem navItem={navItem} key={navItem.name} onNavigate={closeMenu} />;
                 })}
             </div>
         </div>

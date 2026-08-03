@@ -1,6 +1,5 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/router';
-import { BruhNav } from '@/components/bruh/BruhNav';
 import { Section } from '@/components/section/Section';
 import { Alert } from '@/components/alert/Alert';
 import { Toggle } from '@/components/toggle/Toggle';
@@ -36,7 +35,6 @@ export default function BruhAdminIcsFeedsAdd() {
 
     return (
         <>
-            <BruhNav />
             <Section id={'bruh-admin-ics-feeds-add'} className={'admin-section'}>
                 <h1>Add Calendar</h1>
             </Section>

@@ -1,16 +1,18 @@
 .alert {
-    padding: 20px;
-    border-radius: 10px;
-    border: solid 1px;
-    margin-bottom: 20px;
+	padding: 20px;
+	border-radius: 10px;
+	border: solid 1px;
+	margin-bottom: 20px;
 
-    &.alert-success {
-        background-color: color-mix(in srgb, var(--color-success) 20%, transparent);
-        border-color: var(--color-success);
-    }
+	&.alert-success {
+		background-color: color-mix(in srgb, var(--color-success) 20%, transparent);
+		border-color: var(--color-success);
+		color: var(--white);
+	}
 
-    &.alert-error {
-        background-color: color-mix(in srgb, var(--color-error) 20%, transparent);
-        border-color: var(--color-error);
-    }
+	&.alert-error {
+		background-color: color-mix(in srgb, var(--color-error) 20%, transparent);
+		border-color: var(--color-error);
+		color: var(--white);
+	}
 }

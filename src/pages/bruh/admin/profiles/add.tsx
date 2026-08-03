@@ -1,6 +1,5 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/router';
-import { BruhNav } from '@/components/bruh/BruhNav';
 import { Section } from '@/components/section/Section';
 import { Alert } from '@/components/alert/Alert';
 import { Toggle } from '@/components/toggle/Toggle';
@@ -64,7 +63,6 @@ export default function BruhAdminProfilesAdd() {
 
     return (
         <>
-            <BruhNav />
             <Section id={'bruh-admin-profiles-add'} className={'admin-section'}>
                 <h1>Add Profile</h1>
             </Section>

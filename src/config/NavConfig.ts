@@ -57,6 +57,11 @@ export const bruhNavItems = [
         active: false,
     },
     {
+        name: 'Lists',
+        target: '/bruh/lists',
+        active: false,
+    },
+    {
         name: 'Map',
         target: '/bruh/map',
         active: false,
@@ -109,8 +114,20 @@ export const bruhAdminNavItems = [
         requiresAuth: true,
     },
     {
+        name: 'Task Matrix',
+        target: '/bruh/admin/tasks/matrix',
+        active: false,
+        requiresAuth: true,
+    },
+    {
         name: 'Meals',
         target: '/bruh/admin/meals/list',
+        active: false,
+        requiresAuth: true,
+    },
+    {
+        name: 'Lists',
+        target: '/bruh/admin/lists/list',
         active: false,
         requiresAuth: true,
     },
@@ -123,6 +140,12 @@ export const bruhAdminNavItems = [
     {
         name: 'Calendars',
         target: '/bruh/admin/ics-feeds/list',
+        active: false,
+        requiresAuth: true,
+    },
+    {
+        name: 'Smart Home',
+        target: '/bruh/admin/smart-home',
         active: false,
         requiresAuth: true,
     },

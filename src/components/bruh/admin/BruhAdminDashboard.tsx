@@ -1,5 +1,4 @@
 import { useRouter } from 'next/router';
-import { BruhNav } from '@/components/bruh/BruhNav';
 import { Section } from '@/components/section/Section';
 import { Flex } from '@/components/flexbox/Flex';
 import { FlexItem } from '@/components/flexbox/FlexItem';
@@ -23,7 +22,6 @@ export function BruhAdminDashboard() {
     const columns = columnsByBreakpoint[breakpoint];
     return (
         <>
-            <BruhNav />
             <Section id={'bruh-admin'} className={'admin-section'}>
                 <Flex>
                     <FlexItem>
