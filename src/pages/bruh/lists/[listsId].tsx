@@ -106,7 +106,7 @@ export default function BruhListDetail() {
                                 className={'button button-danger'}
                                 onClick={() => void clearChecked()}
                                 disabled={busy}>
-                                Clear Checked ({checkedCount})
+                                Delete Checked ({checkedCount})
                             </button>
                         )}
                     </FlexItem>
@@ -144,9 +144,7 @@ export default function BruhListDetail() {
                             key={item.listItemsId}
                             className={`list-item ${item.checked ? 'checked' : ''}`}
                             onClick={() => void toggleItem(item)}>
-                            <span
-                                className={'list-item-check'}
-                                aria-hidden={true}>
+                            <span className={'list-item-check'} aria-hidden={true}>
                                 {item.checked ? '✓' : ''}
                             </span>
                             <span className={'list-item-name'}>{item.name}</span>

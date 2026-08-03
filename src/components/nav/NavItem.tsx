@@ -4,10 +4,16 @@ import { useRouter } from 'next/router';
 
 export type NavItemType = {
     name: string;
-    target: string;
+    // Optional so group headers (items with children but no destination of their own)
+    // can exist. Leaf items always set this.
+    target?: string;
     active: boolean;
     // Only render this item when the viewer is authenticated. Default: item always renders.
+    // On a group, the flag cascades — children get hidden with the parent.
     requiresAuth?: boolean;
+    // If present, this item renders as a group header with a submenu of these children.
+    // Desktop: hover shows the dropdown. Mobile: children are always shown inline.
+    children?: NavItemType[];
 };
 
 type NavItemProps = {

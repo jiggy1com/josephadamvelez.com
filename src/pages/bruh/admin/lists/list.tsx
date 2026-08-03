@@ -70,10 +70,7 @@ export default function BruhAdminListsList() {
                     </FlexItem>
                 </Flex>
             </Section>
-            <Section
-                id={'bruh-admin-lists-list'}
-                className={'admin-section'}
-                removeArticle={true}>
+            <Section id={'bruh-admin-lists-list'} className={'admin-section'} removeArticle={true}>
                 <Alert success={alert.success} message={alert.message} />
                 <Grid
                     columnGap={'10px'}
@@ -92,6 +89,7 @@ export default function BruhAdminListsList() {
                                             borderRadius: '3px',
                                             backgroundColor: list.color,
                                             flexShrink: 0,
+                                            marginRight: '5px',
                                         }}
                                     />
                                 )}
@@ -104,9 +102,7 @@ export default function BruhAdminListsList() {
                         return (
                             <GridItem key={list.listsId}>
                                 <Card header={header}>
-                                    <Grid
-                                        columnGap={'10px'}
-                                        gridTemplateColumns={'repeat(2, 1fr)'}>
+                                    <Grid columnGap={'10px'} gridTemplateColumns={'repeat(2, 1fr)'}>
                                         <GridItem>
                                             <Link
                                                 href={`/bruh/admin/lists/edit/${list.listsId}`}
@@ -135,9 +131,7 @@ export default function BruhAdminListsList() {
                     confirmLabel={'Confirm'}>
                     <Flex>
                         <FlexItem>
-                            <p>
-                                Delete list &quot;{pendingDelete.name}&quot; and all its items?
-                            </p>
+                            <p>Delete list &quot;{pendingDelete.name}&quot; and all its items?</p>
                         </FlexItem>
                     </Flex>
                 </ConfirmModal>

@@ -15,6 +15,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const isChild = Boolean(req.body?.isChild);
     const isParent = Boolean(req.body?.isParent);
     const isAdmin = Boolean(req.body?.isAdmin);
+    // Accept null or a "#rrggbb" string; anything else is ignored (falls back to null).
+    const rawColor = typeof req.body?.color === 'string' ? req.body.color.trim() : '';
+    const color = /^#[0-9a-fA-F]{6}$/.test(rawColor) ? rawColor : null;
 
     if (!name) {
         return res.status(400).json({ success: false, error: 'name is required' });
@@ -58,6 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 isChild,
                 isParent,
                 isAdmin,
+                color,
             },
             passwordHash,
             salt,

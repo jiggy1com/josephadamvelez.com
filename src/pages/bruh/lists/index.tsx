@@ -57,6 +57,7 @@ export default function BruhListsIndex() {
                                             borderRadius: '3px',
                                             backgroundColor: list.color,
                                             flexShrink: 0,
+                                            marginRight: '5px',
                                         }}
                                     />
                                 )}
@@ -73,8 +74,7 @@ export default function BruhListsIndex() {
                                             {list.uncheckedCount === 0
                                                 ? 'All done'
                                                 : `${list.uncheckedCount} to go`}
-                                            {list.itemCount > 0 &&
-                                                ` · ${list.itemCount} total`}
+                                            {list.itemCount > 0 && ` · ${list.itemCount} total`}
                                         </p>
                                     </Card>
                                 </Link>

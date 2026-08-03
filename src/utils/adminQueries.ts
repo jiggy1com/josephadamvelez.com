@@ -18,6 +18,10 @@ export type Profile = {
     isChild: boolean;
     isParent: boolean;
     isAdmin: boolean;
+    // Profile-picked accent color (hex). Null = fallback to app primary.
+    // Set here; every profile-specific UI surface (map markers, task lists,
+    // chore attribution, etc.) reads it back from Profile.
+    color: string | null;
 };
 
 // For inserting/updating a profile — password is plaintext at this boundary
@@ -29,6 +33,7 @@ export type ProfileInput = {
     isChild: boolean;
     isParent: boolean;
     isAdmin: boolean;
+    color?: string | null;
 };
 
 export type Task = {
@@ -89,7 +94,8 @@ export async function qryGetProfileByForgotPasswordToken(
                username,
                is_child   as "isChild",
                is_parent  as "isParent",
-               is_admin   as "isAdmin"
+               is_admin   as "isAdmin",
+               color
         from profiles
         where forgot_password_token = ${token}
     `) as Profile[];
@@ -140,7 +146,8 @@ export async function qryGetProfileList(): Promise<Profile[]> {
                username,
                is_child   as "isChild",
                is_parent  as "isParent",
-               is_admin   as "isAdmin"
+               is_admin   as "isAdmin",
+               color
         from profiles
         order by lower(name)
     `) as Profile[];
@@ -154,7 +161,8 @@ export async function qryGetProfileById(profilesId: number): Promise<Profile | u
                username,
                is_child   as "isChild",
                is_parent  as "isParent",
-               is_admin   as "isAdmin"
+               is_admin   as "isAdmin",
+               color
         from profiles
         where profiles_id = ${profilesId}
     `) as Profile[];
@@ -168,8 +176,9 @@ export async function qryAddProfile(
 ) {
     const email = input.email ? input.email.toLowerCase() : null;
     const username = input.username ? input.username.toLowerCase() : null;
+    const color = input.color ?? null;
     return sql`
-        insert into profiles (name, email, username, password, salt, is_child, is_parent, is_admin)
+        insert into profiles (name, email, username, password, salt, is_child, is_parent, is_admin, color)
         values (${input.name},
                 ${email},
                 ${username},
@@ -177,7 +186,8 @@ export async function qryAddProfile(
                 ${salt},
                 ${input.isChild},
                 ${input.isParent},
-                ${input.isAdmin})
+                ${input.isAdmin},
+                ${color})
         returning profiles_id as "profilesId", name
     `;
 }
@@ -193,6 +203,8 @@ export async function qryUpdateProfile(
     const email = input.email ? input.email.toLowerCase() : null;
     const username = input.username ? input.username.toLowerCase() : null;
 
+    const color = input.color ?? null;
+
     if (passwordHash && salt) {
         return sql`
             update profiles
@@ -203,7 +215,8 @@ export async function qryUpdateProfile(
                 salt      = ${salt},
                 is_child  = ${input.isChild},
                 is_parent = ${input.isParent},
-                is_admin  = ${input.isAdmin}
+                is_admin  = ${input.isAdmin},
+                color     = ${color}
             where profiles_id = ${profilesId}
             returning profiles_id as "profilesId", name
         `;
@@ -216,7 +229,8 @@ export async function qryUpdateProfile(
             username  = ${username},
             is_child  = ${input.isChild},
             is_parent = ${input.isParent},
-            is_admin  = ${input.isAdmin}
+            is_admin  = ${input.isAdmin},
+            color     = ${color}
         where profiles_id = ${profilesId}
         returning profiles_id as "profilesId", name
     `;
@@ -698,33 +712,41 @@ export async function qryClearCheckedItems(listsId: number) {
 // DEVICE LOCATIONS
 export type DeviceLocationRow = {
     deviceId: string;
-    name: string;
-    platform: string;
+    deviceName: string | null;
+    platform: string | null;
+    profileName: string | null;
+    profileColor: string | null;
     location: {
         latitude: number;
         longitude: number;
         accuracy: number;
         timestamp: string;
-    };
-    battery: number;
-    charging: boolean;
+    } | null;
+    battery: number | null;
+    charging: boolean | null;
 };
 
+// Kids-facing map data. Only surfaces devices that (a) have a profile assigned
+// and (b) have at least one location on record — anything else is admin/setup
+// noise and shouldn't appear as a marker.
 export async function qryGetLastKnownDeviceLocation(): Promise<DeviceLocationRow[]> {
     return (await sql`
-        select d.devices_id                  as "deviceId",
-               d.name,
+        select d.devices_id           as "deviceId",
+               d.name                 as "deviceName",
                d.platform,
+               p.name                 as "profileName",
+               p.color                as "profileColor",
                json_build_object(
                        'latitude', l.latitude,
                        'longitude', l.longitude,
                        'accuracy', l.horizontal_accuracy,
                        'timestamp', l.device_timestamp
-               )                     as location,
-               l.battery_level       as battery,
-               l.is_charging         as charging
+               )                      as location,
+               l.battery_level        as battery,
+               l.is_charging          as charging
         from devices d
-                 left join lateral (
+                 inner join profiles p on p.profiles_id = d.profiles_id
+                 inner join lateral (
             select *
             from locations
             where locations.device_id = d.devices_id
@@ -732,6 +754,63 @@ export async function qryGetLastKnownDeviceLocation(): Promise<DeviceLocationRow
                 limit 1
             ) l on true
     `) as DeviceLocationRow[];
+}
+
+export type DeviceRow = {
+    devicesId: string;
+    name: string | null;
+    platform: string | null;
+    profilesId: number | null;
+    profileName: string | null;
+    lastSeen: string | null;
+};
+
+export async function qryListDevicesWithProfile(): Promise<DeviceRow[]> {
+    return (await sql`
+        select d.devices_id  as "devicesId",
+               d.name        as name,
+               d.platform    as platform,
+               d.profiles_id as "profilesId",
+               p.name        as "profileName",
+               l.last_seen   as "lastSeen"
+        from devices d
+                 left join profiles p on p.profiles_id = d.profiles_id
+                 left join lateral (
+            select max(received_at) as last_seen
+            from locations
+            where locations.device_id = d.devices_id
+            ) l on true
+        order by lower(d.name) nulls last, d.devices_id
+    `) as DeviceRow[];
+}
+
+export async function qryAssignDeviceToProfile(
+    devicesId: string,
+    profilesId: number | null,
+): Promise<void> {
+    await sql`
+        update devices
+        set profiles_id = ${profilesId}
+        where devices_id = ${devicesId}
+    `;
+}
+
+// Called on every location ping — the mobile app is just a beacon and doesn't
+// register itself separately. We upsert so first-ping creates the device row,
+// and later pings refresh name/platform if they changed (e.g. user renamed
+// their phone in iOS Settings). profiles_id is left alone once set.
+export async function qryUpsertDevice(
+    devicesId: string,
+    name: string | null,
+    platform: string | null,
+): Promise<void> {
+    await sql`
+        insert into devices (devices_id, name, platform)
+        values (${devicesId}, ${name}, ${platform})
+        on conflict (devices_id) do update
+            set name     = coalesce(excluded.name, devices.name),
+                platform = coalesce(excluded.platform, devices.platform)
+    `;
 }
 
 export type locationType = {

@@ -280,6 +280,15 @@ body {
 			margin-bottom: 10px;
 			width: 100%;
 		}
+
+
+	}
+
+	select {
+		padding: 10px;
+		border: solid 1px var(--gray-200);
+		border-radius: 10px;
+		cursor: pointer;
 	}
 
 	// Segmented control — pill group for mutually-exclusive choices.
@@ -406,6 +415,13 @@ body {
 		// "Today" cell tint
 		--fc-today-bg-color: var(--color-surface-hover);
 
+		// FullCalendar ships the header toolbar with 1.5em margin-bottom and no side
+		// margins — buttons end up flush to the container edges. Match top and add
+		// horizontal breathing room too.
+		.fc-toolbar.fc-header-toolbar {
+			margin: 1.5em 1em;
+		}
+
 		// Toolbar buttons — undo global .button styling that would swallow FullCalendar's own.
 		.fc-button {
 			text-transform: none;
@@ -428,7 +444,7 @@ body {
 		display: grid;
 		gap: 20px;
 		grid-template-columns: 1fr;
-		@include m.mediaMin('tabletLandscape') {
+		@include mediaMin('tabletLandscape') {
 			grid-template-columns: 220px 1fr;
 		}
 	}
@@ -613,6 +629,75 @@ body {
 		.matrix-all-col,
 		.matrix-all-cell {
 			border-left: 1px solid var(--color-border-subtle);
+		}
+	}
+
+	// Devices admin — device rows with per-row profile dropdown
+	.devices-table {
+		border-collapse: collapse;
+		width: 100%;
+
+		th, td {
+			padding: 10px 12px;
+			border-bottom: 1px solid var(--color-border-subtle);
+			text-align: left;
+			vertical-align: middle;
+		}
+
+		th {
+			font-weight: bold;
+			background-color: var(--color-surface-chrome);
+		}
+
+		.devices-table-meta {
+			font-size: 0.75em;
+			opacity: 0.55;
+			margin-top: 2px;
+			font-family: monospace;
+			word-break: break-all;
+		}
+
+		select {
+			min-width: 160px;
+		}
+	}
+
+	// Color picker — profile accent color swatches (single-select).
+	.color-picker {
+		display: inline-flex;
+		gap: 10px;
+		flex-wrap: wrap;
+
+		.color-swatch {
+			// Override global .button styling — this is a swatch, not a CTA.
+			background: none;
+			color: inherit;
+			text-transform: none;
+			padding: 0;
+			font-weight: normal;
+
+			width: 32px;
+			height: 32px;
+			border-radius: 50%;
+			border: 2px solid var(--color-border-strong);
+			cursor: pointer;
+			transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+
+			&:hover:not(:disabled) {
+				transform: scale(1.1);
+			}
+
+			// Selected state — brighter ring + subtle glow so it reads as "picked"
+			// against any swatch fill color.
+			&.selected {
+				border-color: var(--white);
+				box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+			}
+
+			&:disabled {
+				opacity: 0.5;
+				cursor: not-allowed;
+			}
 		}
 	}
 
