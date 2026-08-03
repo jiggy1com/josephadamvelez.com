@@ -1,4 +1,3 @@
-// @ts-expect-error node-ical has no bundled types
 import ical from 'node-ical';
 import type { IcsFeed } from '@/utils/adminQueries';
 

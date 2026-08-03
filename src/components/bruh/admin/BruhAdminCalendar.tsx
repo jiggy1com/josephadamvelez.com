@@ -4,7 +4,6 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin, { Draggable } from '@fullcalendar/interaction';
 import type {
     EventClickArg,
-    EventDragStopArg,
     EventDropArg,
     EventInput,
     EventSourceFuncArg,
@@ -12,6 +11,16 @@ import type {
 import type { DropArg } from '@fullcalendar/interaction';
 import type { Meal, MealPlan, MealSlot } from '@/utils/adminQueries';
 import { Modal } from '@/components/modal/Modal';
+
+// FullCalendar v6 doesn't export the eventDragStop arg type by name.
+// Structural type covers what we actually read.
+type EventDragStopArg = {
+    jsEvent: MouseEvent;
+    event: {
+        remove: () => void;
+        extendedProps: Record<string, unknown>;
+    };
+};
 
 // Local-time date formatter — avoids the toISOString UTC skew.
 function toISODate(d: Date): string {
