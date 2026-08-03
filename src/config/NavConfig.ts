@@ -57,6 +57,11 @@ export const bruhNavItems = [
         active: false,
     },
     {
+        name: 'Lists',
+        target: '/bruh/lists',
+        active: false,
+    },
+    {
         name: 'Map',
         target: '/bruh/map',
         active: false,
@@ -81,48 +86,70 @@ export const bruhNavItems = [
 
 export const bruhAdminNavItems = [
     {
-        name: 'Bruh',
-        target: '/bruh',
-        active: false,
-    },
-    {
-        name: 'Bruh Admin',
-        target: '/bruh/admin',
-        active: false,
-    },
-    {
         name: 'Profiles',
         target: '/bruh/admin/profiles/list',
         active: false,
         requiresAuth: true,
     },
     {
+        name: 'Devices',
+        target: '/bruh/admin/devices/list',
+        active: false,
+        requiresAuth: true,
+    },
+    {
         name: 'Tasks',
-        target: '/bruh/admin/tasks/list',
         active: false,
         requiresAuth: true,
-    },
-    {
-        name: 'Assign Tasks',
-        target: '/bruh/admin/tasks/assign',
-        active: false,
-        requiresAuth: true,
-    },
-    {
-        name: 'Meals',
-        target: '/bruh/admin/meals/list',
-        active: false,
-        requiresAuth: true,
+        children: [
+            {
+                name: 'Manage',
+                target: '/bruh/admin/tasks/list',
+                active: false,
+            },
+            {
+                name: 'Assign by Profile',
+                target: '/bruh/admin/tasks/assign',
+                active: false,
+            },
+            {
+                name: 'Assign by Task',
+                target: '/bruh/admin/tasks/matrix',
+                active: false,
+            },
+        ],
     },
     {
         name: 'Calendar',
-        target: '/bruh/admin/calendar',
+        active: false,
+        requiresAuth: true,
+        children: [
+            {
+                name: '.ics Calendar Feeds',
+                target: '/bruh/admin/ics-feeds/list',
+                active: false,
+            },
+            {
+                name: 'Meals List',
+                target: '/bruh/admin/meals/list',
+                active: false,
+            },
+            {
+                name: 'Add Meals to Calendar',
+                target: '/bruh/admin/calendar',
+                active: false,
+            },
+        ],
+    },
+    {
+        name: 'Lists',
+        target: '/bruh/admin/lists/list',
         active: false,
         requiresAuth: true,
     },
     {
-        name: 'Calendars',
-        target: '/bruh/admin/ics-feeds/list',
+        name: 'Smart Home',
+        target: '/bruh/admin/smart-home',
         active: false,
         requiresAuth: true,
     },

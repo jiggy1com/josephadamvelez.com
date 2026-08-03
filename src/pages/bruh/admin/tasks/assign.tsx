@@ -1,6 +1,5 @@
 import { ProfilesList } from '@/components/bruh/admin/profilesList';
 import { qryGetTaskList, qryGetProfilesTasksByProfileGrouped } from '@/utils/adminQueries';
-import { BruhNav } from '@/components/bruh/BruhNav';
 import { BruhAdminTasksAssignmentProvider } from '@/providers/BruhAdminTasksAssignmentContext';
 
 export async function getServerSideProps() {
@@ -24,7 +23,6 @@ export default function BruhAdminTasksAssignment({
 }) {
     return (
         <div>
-            <BruhNav />
             <BruhAdminTasksAssignmentProvider
                 data={{
                     taskList: data.taskList,

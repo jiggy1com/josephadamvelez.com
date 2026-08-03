@@ -2,7 +2,6 @@ import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/router';
 import { GetServerSideProps } from 'next';
 import Link from 'next/link';
-import { BruhNav } from '@/components/bruh/BruhNav';
 import { Section } from '@/components/section/Section';
 import { Alert, AlertType } from '@/components/alert/Alert';
 import { qryGetProfileByForgotPasswordToken } from '@/utils/adminQueries';
@@ -29,7 +28,6 @@ export default function BruhAdminResetPassword(props: Props) {
     if (!props.valid) {
         return (
             <>
-                <BruhNav />
                 <Section id={'bruh-admin-reset-password-invalid'} className={'admin-section'}>
                     <h1>Access denied</h1>
                 </Section>
@@ -74,7 +72,6 @@ export default function BruhAdminResetPassword(props: Props) {
 
     return (
         <>
-            <BruhNav />
             <Section id={'bruh-admin-reset-password'} className={'admin-section'}>
                 <h1>Reset password for {props.name}</h1>
             </Section>

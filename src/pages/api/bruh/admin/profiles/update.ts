@@ -16,6 +16,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const isChild = Boolean(req.body?.isChild);
     const isParent = Boolean(req.body?.isParent);
     const isAdmin = Boolean(req.body?.isAdmin);
+    const rawColor = typeof req.body?.color === 'string' ? req.body.color.trim() : '';
+    const color = /^#[0-9a-fA-F]{6}$/.test(rawColor) ? rawColor : null;
 
     if (!profilesId || !name) {
         return res
@@ -64,6 +66,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 isChild,
                 isParent,
                 isAdmin,
+                color,
             },
             passwordHash,
             salt,

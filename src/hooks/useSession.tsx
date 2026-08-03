@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useState } from 'react';
+import {
+    createContext,
+    ReactNode,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useState,
+} from 'react';
 
 export type SessionUser = {
     profilesId: number;
@@ -14,11 +22,21 @@ type SessionState = {
     error: string | null;
 };
 
-// Client helper for the session. Reads from /api/bruh/auth/session — the JWT
-// itself is HttpOnly and never touched by client JS. To add "write" behaviors
-// later (e.g., updating preferences on the JWT), extend this hook with
-// additional actions that POST to dedicated endpoints.
-export function useSession() {
+type SignInResult =
+    | { success: true; user: SessionUser }
+    | { success: false; error: string };
+
+type SessionContextValue = SessionState & {
+    refresh: () => Promise<void>;
+    signIn: (username: string, password: string) => Promise<SignInResult>;
+    signOut: () => Promise<void>;
+};
+
+// One context, one owner. Every useSession() call reads from here so
+// login/logout mutations are visible to every consumer instantly.
+const SessionContext = createContext<SessionContextValue | null>(null);
+
+export function SessionProvider({ children }: { children: ReactNode }) {
     const [state, setState] = useState<SessionState>({
         user: null,
         loading: true,
@@ -41,7 +59,7 @@ export function useSession() {
     }, []);
 
     const signIn = useCallback(
-        async (username: string, password: string) => {
+        async (username: string, password: string): Promise<SignInResult> => {
             const res = await fetch('/api/bruh/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -49,10 +67,10 @@ export function useSession() {
             });
             const json = await res.json();
             if (!json.success) {
-                return { success: false as const, error: json.error ?? 'Login failed' };
+                return { success: false, error: json.error ?? 'Login failed' };
             }
             await refresh();
-            return { success: true as const, user: json.user as SessionUser };
+            return { success: true, user: json.user as SessionUser };
         },
         [refresh],
     );
@@ -66,5 +84,18 @@ export function useSession() {
         void refresh();
     }, [refresh]);
 
-    return { ...state, refresh, signIn, signOut };
+    const value = useMemo<SessionContextValue>(
+        () => ({ ...state, refresh, signIn, signOut }),
+        [state, refresh, signIn, signOut],
+    );
+
+    return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
+}
+
+export function useSession(): SessionContextValue {
+    const ctx = useContext(SessionContext);
+    if (!ctx) {
+        throw new Error('useSession must be used within a SessionProvider');
+    }
+    return ctx;
 }

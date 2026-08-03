@@ -1,10 +1,18 @@
 import '@/styles/globals.scss';
 import type { AppProps } from 'next/app';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 import { fontUbuntu } from '@/utils/fonts';
+import { BruhNav } from '@/components/bruh/BruhNav';
+import { SessionProvider } from '@/hooks/useSession';
 
 export default function App({ Component, pageProps }: AppProps) {
-    console.log('pageProps', pageProps);
+    const router = useRouter();
+    // BruhNav is rendered once here and persists across /bruh/* navigations.
+    // This is what makes menu state (open/closed) survive router.push — the
+    // Nav component doesn't unmount, so its state doesn't reset.
+    const showBruhNav = router.pathname.startsWith('/bruh');
+
     return (
         <>
             <Head>
@@ -18,7 +26,10 @@ export default function App({ Component, pageProps }: AppProps) {
                 />
             </Head>
             <div className={fontUbuntu.className}>
-                <Component {...pageProps} />
+                <SessionProvider>
+                    {showBruhNav && <BruhNav />}
+                    <Component {...pageProps} />
+                </SessionProvider>
             </div>
         </>
     );

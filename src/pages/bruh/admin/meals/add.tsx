@@ -1,6 +1,5 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/router';
-import { BruhNav } from '@/components/bruh/BruhNav';
 import { Section } from '@/components/section/Section';
 import { Alert } from '@/components/alert/Alert';
 import { useFormSubmit } from '@/hooks/useFormSubmit';
@@ -24,7 +23,6 @@ export default function BruhAdminMealsAdd() {
 
     return (
         <>
-            <BruhNav />
             <Section id={'bruh-admin-meals-add'} className={'admin-section'}>
                 <h1>Add Meal</h1>
             </Section>

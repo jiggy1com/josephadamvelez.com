@@ -1,10 +1,10 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/router';
-import { BruhNav } from '@/components/bruh/BruhNav';
 import { Section } from '@/components/section/Section';
 import { Alert } from '@/components/alert/Alert';
 import { Toggle } from '@/components/toggle/Toggle';
 import { SegmentedControl } from '@/components/segmented-control/SegmentedControl';
+import { ColorPicker } from '@/components/color-picker/ColorPicker';
 import { useFormSubmit } from '@/hooks/useFormSubmit';
 import { validatePassword } from '@/utils/password';
 
@@ -18,6 +18,7 @@ type AddProfilePayload = {
     isChild: boolean;
     isParent: boolean;
     isAdmin: boolean;
+    color: string | null;
 };
 
 export default function BruhAdminProfilesAdd() {
@@ -28,6 +29,7 @@ export default function BruhAdminProfilesAdd() {
     const [password, setPassword] = useState('');
     const [role, setRole] = useState<Role | null>(null);
     const [isAdmin, setIsAdmin] = useState(false);
+    const [color, setColor] = useState<string | null>(null);
 
     const passwordCheck = validatePassword(password);
     const canSubmit = passwordCheck.valid && role !== null;
@@ -43,6 +45,7 @@ export default function BruhAdminProfilesAdd() {
                 setPassword('');
                 setRole(null);
                 setIsAdmin(false);
+                setColor(null);
             },
             autoClearMs: 1500,
         },
@@ -59,12 +62,12 @@ export default function BruhAdminProfilesAdd() {
             isChild: role === 'child',
             isParent: role === 'parent',
             isAdmin,
+            color,
         });
     };
 
     return (
         <>
-            <BruhNav />
             <Section id={'bruh-admin-profiles-add'} className={'admin-section'}>
                 <h1>Add Profile</h1>
             </Section>
@@ -138,6 +141,10 @@ export default function BruhAdminProfilesAdd() {
                             />
                         </div>
                         <Toggle checked={isAdmin} onChange={setIsAdmin} label={'Admin'} />
+                    </div>
+                    <div style={{ margin: '10px 0 20px' }}>
+                        <div style={{ marginBottom: '5px', fontSize: '0.9em' }}>Color</div>
+                        <ColorPicker value={color} onChange={setColor} />
                     </div>
                     <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
                         <button

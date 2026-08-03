@@ -1,7 +1,6 @@
 import { FormEvent, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { BruhNav } from '@/components/bruh/BruhNav';
 import { Section } from '@/components/section/Section';
 import { Alert, AlertType } from '@/components/alert/Alert';
 import { useSession } from '@/hooks/useSession';
@@ -38,7 +37,6 @@ export function BruhAdminLogin({ onSignedIn }: Props) {
 
     return (
         <>
-            <BruhNav />
             <Section id={'bruh-admin-login'} className={'admin-section'}>
                 <h1>Sign in</h1>
             </Section>

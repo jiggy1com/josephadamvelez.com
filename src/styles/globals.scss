@@ -280,6 +280,15 @@ body {
 			margin-bottom: 10px;
 			width: 100%;
 		}
+
+
+	}
+
+	select {
+		padding: 10px;
+		border: solid 1px var(--gray-200);
+		border-radius: 10px;
+		cursor: pointer;
 	}
 
 	// Segmented control — pill group for mutually-exclusive choices.
@@ -406,6 +415,13 @@ body {
 		// "Today" cell tint
 		--fc-today-bg-color: var(--color-surface-hover);
 
+		// FullCalendar ships the header toolbar with 1.5em margin-bottom and no side
+		// margins — buttons end up flush to the container edges. Match top and add
+		// horizontal breathing room too.
+		.fc-toolbar.fc-header-toolbar {
+			margin: 1.5em 1em;
+		}
+
 		// Toolbar buttons — undo global .button styling that would swallow FullCalendar's own.
 		.fc-button {
 			text-transform: none;
@@ -428,7 +444,7 @@ body {
 		display: grid;
 		gap: 20px;
 		grid-template-columns: 1fr;
-		@include m.mediaMin('tabletLandscape') {
+		@include mediaMin('tabletLandscape') {
 			grid-template-columns: 220px 1fr;
 		}
 	}
@@ -504,6 +520,222 @@ body {
 		&:hover {
 			opacity: 1;
 			border-color: var(--color-error);
+		}
+	}
+
+	// List items — tap-to-check pattern with visual state
+	.list-items {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0;
+	}
+
+	.list-item {
+		display: flex;
+		align-items: center;
+		gap: 15px;
+		padding: 15px 20px;
+		border-bottom: 1px solid var(--color-border-subtle);
+		cursor: pointer;
+		user-select: none;
+		transition: background-color 100ms ease, opacity 150ms ease;
+
+		&:hover {
+			background-color: var(--color-surface-hover);
+		}
+
+		&.checked {
+			opacity: 0.5;
+
+			.list-item-name {
+				text-decoration: line-through;
+			}
+		}
+	}
+
+	.list-item-check {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 24px;
+		height: 24px;
+		border-radius: 4px;
+		border: 2px solid var(--color-border-subtle);
+		flex-shrink: 0;
+		font-weight: bold;
+		color: var(--color-primary);
+	}
+
+	.list-item.checked .list-item-check {
+		border-color: var(--color-primary);
+	}
+
+	.list-item-name {
+		flex-grow: 1;
+		font-size: 1.1em;
+	}
+
+	.list-empty {
+		padding: 30px 20px;
+		text-align: center;
+		opacity: 0.6;
+	}
+
+	// Task matrix — tasks × profiles grid with per-cell + per-row toggles
+	.matrix-table {
+		border-collapse: collapse;
+		width: 100%;
+
+		th, td {
+			padding: 10px 12px;
+			border-bottom: 1px solid var(--color-border-subtle);
+			text-align: center;
+		}
+
+		th {
+			font-weight: bold;
+			background-color: var(--color-surface-chrome);
+			position: sticky;
+			top: 0;
+		}
+
+		.matrix-corner,
+		.matrix-task-cell {
+			text-align: left;
+			min-width: 180px;
+		}
+
+		.matrix-task-cell {
+			font-weight: bold;
+		}
+
+		.matrix-task-meta {
+			font-size: 0.8em;
+			font-weight: normal;
+			opacity: 0.6;
+			margin-top: 2px;
+		}
+
+		.matrix-cell input[type='checkbox'] {
+			width: 22px;
+			height: 22px;
+			margin: 0;
+			cursor: pointer;
+		}
+
+		.matrix-all-col,
+		.matrix-all-cell {
+			border-left: 1px solid var(--color-border-subtle);
+		}
+	}
+
+	// Devices admin — device rows with per-row profile dropdown
+	.devices-table {
+		border-collapse: collapse;
+		width: 100%;
+
+		th, td {
+			padding: 10px 12px;
+			border-bottom: 1px solid var(--color-border-subtle);
+			text-align: left;
+			vertical-align: middle;
+		}
+
+		th {
+			font-weight: bold;
+			background-color: var(--color-surface-chrome);
+		}
+
+		.devices-table-meta {
+			font-size: 0.75em;
+			opacity: 0.55;
+			margin-top: 2px;
+			font-family: monospace;
+			word-break: break-all;
+		}
+
+		select {
+			min-width: 160px;
+		}
+	}
+
+	// Color picker — profile accent color swatches (single-select).
+	.color-picker {
+		display: inline-flex;
+		gap: 10px;
+		flex-wrap: wrap;
+
+		.color-swatch {
+			// Override global .button styling — this is a swatch, not a CTA.
+			background: none;
+			color: inherit;
+			text-transform: none;
+			padding: 0;
+			font-weight: normal;
+
+			width: 32px;
+			height: 32px;
+			border-radius: 50%;
+			border: 2px solid var(--color-border-strong);
+			cursor: pointer;
+			transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+
+			&:hover:not(:disabled) {
+				transform: scale(1.1);
+			}
+
+			// Selected state — brighter ring + subtle glow so it reads as "picked"
+			// against any swatch fill color.
+			&.selected {
+				border-color: var(--white);
+				box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+			}
+
+			&:disabled {
+				opacity: 0.5;
+				cursor: not-allowed;
+			}
+		}
+	}
+
+	// Days-of-week picker — multi-select pill row for tasks recurrence
+	.days-of-week-picker {
+		display: inline-flex;
+		gap: 6px;
+		flex-wrap: wrap;
+
+		.day-pill {
+			// Override global .button styling
+			background: none;
+			color: inherit;
+			text-transform: none;
+			border: 1px solid var(--color-border-strong);
+			border-radius: 999px;
+			padding: 6px 12px;
+			font-weight: normal;
+			font-size: 0.9em;
+			min-width: 42px;
+			cursor: pointer;
+			transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+
+			&:hover:not(.selected):not(:disabled) {
+				background-color: var(--color-surface-hover);
+			}
+
+			&.selected {
+				background-color: var(--color-primary);
+				color: var(--color-primary-fg);
+				border-color: var(--color-primary);
+				font-weight: bold;
+			}
+
+			&:disabled {
+				opacity: 0.5;
+				cursor: not-allowed;
+			}
 		}
 	}
 

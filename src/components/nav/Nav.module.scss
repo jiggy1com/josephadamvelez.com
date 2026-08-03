@@ -8,7 +8,11 @@
 	background: linear-gradient($buttonAngle, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.9) 0%);
 	width: 100vw;
 	box-shadow: 0px 0px 60px var(--black);
-	overflow: scroll;
+	// `overflow: scroll` here was clipping the desktop dropdown submenu — scoped to
+	// mobile only where the vertical nav might genuinely need to scroll.
+	@include mediaMax('tablet') {
+		overflow: auto;
+	}
 	display: flex;
 	flex-direction: row;
 	flex-wrap: wrap;
@@ -51,8 +55,6 @@
 		flex-direction: row;
 		flex-wrap: wrap;
 
-		overflow: hidden;
-
 		// animation for mobile styles
 		transition: max-height 0.5s ease,
 		opacity 0.5s ease,
@@ -61,6 +63,10 @@
 		// mobile styles
 
 		@include mediaMax('tablet') {
+			// `overflow: hidden` scoped to mobile — enables the max-height collapse
+			// animation without content spilling out. Removing from base fixed the
+			// desktop dropdown clipping issue.
+			overflow: hidden;
 			max-height: 0;
 			opacity: 0;
 			transform: translateY(-20px);
@@ -76,7 +82,9 @@
 				flex-direction: column;
 				flex-basis: 100%;
 				width: 100%;
-				max-height: 500px;
+				// Was 500px — bumped so grouped nav items with all children visible still fit.
+				max-height: calc(100vh - var(--nav-height));
+				overflow-y: auto;
 				opacity: 1;
 				transform: translateY(0);
 			}
@@ -97,6 +105,72 @@
 
 			&.active {
 				color: var(--color-primary);
+			}
+		}
+
+		// ── Grouped nav (item with children) ───────────────────────────────
+		.navGroup {
+			position: relative;
+
+			.navGroupHeader {
+				cursor: default;
+				color: var(--gray-200);
+				font-weight: bold;
+				padding: 15px 20px;
+				text-wrap: nowrap;
+				display: inline-block;
+			}
+
+			&.active > .navGroupHeader {
+				color: var(--color-primary);
+			}
+
+			// Mobile: children always visible, indented under the header.
+			@include mediaMax('tablet') {
+				display: block;
+				width: 100%;
+
+				.navGroupChildren {
+					display: flex;
+					flex-direction: column;
+
+					a {
+						padding-left: 40px;
+						font-size: 0.95em;
+					}
+				}
+			}
+
+			// Desktop: header shown inline, children in a hover-triggered dropdown.
+			@include mediaMin('tabletLandscape') {
+				.navGroupChildren {
+					position: absolute;
+					top: 100%;
+					left: 0;
+					min-width: 100%;
+					background: var(--black);
+					box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+					border-radius: 0 0 8px 8px;
+					display: none;
+					flex-direction: column;
+					z-index: 3;
+
+					a {
+						padding: 12px 20px;
+					}
+				}
+
+				&:hover > .navGroupChildren,
+				&:focus-within > .navGroupChildren {
+					display: flex;
+				}
+
+				// Small caret so users know the header has a submenu
+				.navGroupHeader::after {
+					content: ' ▾';
+					font-size: 0.75em;
+					opacity: 0.7;
+				}
 			}
 		}
 	}

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { BruhNav } from '@/components/bruh/BruhNav';
 import { Section } from '@/components/section/Section';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { Alert, AlertType } from '@/components/alert/Alert';
@@ -62,7 +61,6 @@ export default function BruhAdminIcsFeedsList() {
 
     return (
         <>
-            <BruhNav />
             <Section id={'bruh-admin-ics-feeds-list-header'} className={'admin-section'}>
                 <Flex justifyContent={'space-between'} alignItems={'center'}>
                     <FlexItem>
@@ -97,6 +95,7 @@ export default function BruhAdminIcsFeedsList() {
                                             borderRadius: '3px',
                                             backgroundColor: feed.color,
                                             flexShrink: 0,
+                                            marginRight: '5px',
                                         }}
                                     />
                                 )}
@@ -109,21 +108,19 @@ export default function BruhAdminIcsFeedsList() {
                         return (
                             <GridItem key={feed.icsFeedId}>
                                 <Card header={header}>
-                                    <p
-                                        style={{
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis',
-                                            whiteSpace: 'nowrap',
-                                            fontSize: '0.85em',
-                                            opacity: 0.7,
-                                            marginBottom: '10px',
-                                        }}
-                                        title={feed.url}>
-                                        {feed.url}
-                                    </p>
-                                    <Grid
-                                        columnGap={'10px'}
-                                        gridTemplateColumns={'repeat(2, 1fr)'}>
+                                    {/*<p*/}
+                                    {/*    style={{*/}
+                                    {/*        overflow: 'hidden',*/}
+                                    {/*        textOverflow: 'ellipsis',*/}
+                                    {/*        whiteSpace: 'nowrap',*/}
+                                    {/*        fontSize: '0.85em',*/}
+                                    {/*        opacity: 0.7,*/}
+                                    {/*        marginBottom: '10px',*/}
+                                    {/*    }}*/}
+                                    {/*    title={feed.url}>*/}
+                                    {/*    {feed.url}*/}
+                                    {/*</p>*/}
+                                    <Grid columnGap={'10px'} gridTemplateColumns={'repeat(2, 1fr)'}>
                                         <GridItem>
                                             <Link
                                                 href={`/bruh/admin/ics-feeds/edit/${feed.icsFeedId}`}

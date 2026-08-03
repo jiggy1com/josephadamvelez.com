@@ -1,4 +1,3 @@
-import { BruhNav } from '@/components/bruh/BruhNav';
 import { BruhChores } from '@/components/bruh/BruhChores';
 import { qryGetProfilesTasksByProfileGrouped } from '@/utils/adminQueries';
 import { ChoresProvider } from '@/providers/BruhChoresContext';
@@ -10,7 +9,8 @@ export type BruhTasksProps = {
 };
 
 export async function getServerSideProps() {
-    const profilesWithTasks = await qryGetProfilesTasksByProfileGrouped();
+    // Kids-facing: only show tasks whose days_of_week includes today.
+    const profilesWithTasks = await qryGetProfilesTasksByProfileGrouped(true);
 
     return {
         props: {
@@ -25,7 +25,6 @@ export async function getServerSideProps() {
 export default function Tasks({ data }: BruhTasksProps) {
     return (
         <div>
-            <BruhNav />
             <ChoresProvider data={data}>
                 <BruhChores />
             </ChoresProvider>

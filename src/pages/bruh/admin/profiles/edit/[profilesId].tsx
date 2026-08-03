@@ -1,11 +1,11 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/router';
 import { GetServerSideProps } from 'next';
-import { BruhNav } from '@/components/bruh/BruhNav';
 import { Section } from '@/components/section/Section';
 import { Alert } from '@/components/alert/Alert';
 import { Toggle } from '@/components/toggle/Toggle';
 import { SegmentedControl } from '@/components/segmented-control/SegmentedControl';
+import { ColorPicker } from '@/components/color-picker/ColorPicker';
 import { qryGetProfileById } from '@/utils/adminQueries';
 import type { Profile } from '@/utils/adminQueries';
 import { useFormSubmit } from '@/hooks/useFormSubmit';
@@ -24,6 +24,7 @@ type UpdateProfilePayload = {
     isChild: boolean;
     isParent: boolean;
     isAdmin: boolean;
+    color: string | null;
 };
 
 export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
@@ -44,6 +45,7 @@ export default function BruhAdminProfilesEdit({ profile }: Props) {
         profile.isChild ? 'child' : profile.isParent ? 'parent' : null,
     );
     const [isAdmin, setIsAdmin] = useState(profile.isAdmin);
+    const [color, setColor] = useState<string | null>(profile.color);
 
     const passwordCheck = validatePassword(password);
     // Password is optional on edit — only validate if the admin actually typed something.
@@ -74,12 +76,12 @@ export default function BruhAdminProfilesEdit({ profile }: Props) {
             isChild: role === 'child',
             isParent: role === 'parent',
             isAdmin,
+            color,
         });
     };
 
     return (
         <>
-            <BruhNav />
             <Section id={'bruh-admin-profiles-edit'} className={'admin-section'}>
                 <h1>Edit Profile</h1>
             </Section>
@@ -149,6 +151,10 @@ export default function BruhAdminProfilesEdit({ profile }: Props) {
                             ]}
                         />
                         <Toggle checked={isAdmin} onChange={setIsAdmin} label={'Admin'} />
+                    </div>
+                    <div style={{ margin: '10px 0 20px' }}>
+                        <div style={{ marginBottom: '5px', fontSize: '0.9em' }}>Color</div>
+                        <ColorPicker value={color} onChange={setColor} />
                     </div>
                     <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
                         <button

@@ -7,7 +7,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-        const data = await qryGetProfilesTasksByProfileGrouped();
+        // Kids-facing: only show tasks whose days_of_week includes today.
+        const data = await qryGetProfilesTasksByProfileGrouped(true);
         return res.status(200).json({ success: true, data });
     } catch (e) {
         const error = e instanceof Error ? e.message : String(e);

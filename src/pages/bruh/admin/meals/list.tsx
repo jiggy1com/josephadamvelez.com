@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { BruhNav } from '@/components/bruh/BruhNav';
 import { Section } from '@/components/section/Section';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { Alert, AlertType } from '@/components/alert/Alert';
@@ -62,7 +61,6 @@ export default function BruhAdminMealsList() {
 
     return (
         <>
-            <BruhNav />
             <Section id={'bruh-admin-meals-list-header'} className={'admin-section'}>
                 <Flex justifyContent={'space-between'} alignItems={'center'}>
                     <FlexItem>

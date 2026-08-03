@@ -7,6 +7,7 @@ import { Flex } from '@/components/flexbox/Flex';
 import { FlexItem } from '@/components/flexbox/FlexItem';
 import { Modal } from '@/components/modal/Modal';
 import { VIEWPORT_HEIGHT_MINUS_NAV } from '@/constants/layout';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 
 function toISODate(d: Date): string {
     const y = d.getFullYear();
@@ -65,6 +66,13 @@ async function fetchEvents(info: EventSourceFuncArg): Promise<EventInput[]> {
 
 export function BruhCalendar() {
     const [details, setDetails] = useState<EventDetails | null>(null);
+    const breakpoint = useBreakpoint();
+    // Stack weather above calendar until we've got real horizontal room to breathe.
+    // tabletLandscape (1025+) is the first breakpoint where side-by-side actually works.
+    const stack =
+        breakpoint === 'mobile' ||
+        breakpoint === 'mobileLandscape' ||
+        breakpoint === 'tablet';
 
     const onEventClick = (info: EventClickArg) => {
         const props = info.event.extendedProps as {
@@ -87,9 +95,14 @@ export function BruhCalendar() {
     };
 
     return (
-        <Flex flexDirection={'column'} height={VIEWPORT_HEIGHT_MINUS_NAV}>
+        <Flex
+            flexDirection={'column'}
+            height={stack ? undefined : VIEWPORT_HEIGHT_MINUS_NAV}>
             <FlexItem flexGrow={1} minHeight={'0'}>
-                <Flex height={'100%'}>
+                <Flex
+                    flexDirection={stack ? 'column' : 'row'}
+                    height={stack ? undefined : '100%'}
+                    gap={stack ? '20px' : undefined}>
                     <FlexItem>
                         {/* Elfsight Weather */}
                         <script src={'https://elfsightcdn.com/platform.js'} async />
@@ -102,7 +115,11 @@ export function BruhCalendar() {
                         <FullCalendar
                             plugins={[dayGridPlugin]}
                             initialView={'dayGridMonth'}
-                            height={'100%'}
+                            // On stacked mobile we drop the viewport-constrained height and
+                            // let FullCalendar size itself so the whole page scrolls naturally
+                            // — otherwise the calendar tries to fit into whatever crumbs the
+                            // weather widget leaves and gets unreadable.
+                            height={stack ? 'auto' : '100%'}
                             headerToolbar={{
                                 left: 'prev,next today',
                                 center: 'title',

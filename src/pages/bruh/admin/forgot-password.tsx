@@ -1,6 +1,5 @@
 import { FormEvent, useState } from 'react';
 import Link from 'next/link';
-import { BruhNav } from '@/components/bruh/BruhNav';
 import { Section } from '@/components/section/Section';
 import { Alert, AlertType } from '@/components/alert/Alert';
 
@@ -33,7 +32,6 @@ export default function BruhAdminForgotPassword() {
 
     return (
         <>
-            <BruhNav />
             <Section id={'bruh-admin-forgot-password'} className={'admin-section'}>
                 <h1>Forgot Password</h1>
             </Section>
