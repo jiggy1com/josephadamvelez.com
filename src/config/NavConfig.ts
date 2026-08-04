@@ -93,9 +93,20 @@ export const bruhAdminNavItems = [
     },
     {
         name: 'Devices',
-        target: '/bruh/admin/devices/list',
         active: false,
         requiresAuth: true,
+        children: [
+            {
+                name: 'Manage',
+                target: '/bruh/admin/devices/list',
+                active: false,
+            },
+            {
+                name: 'Insights',
+                target: '/bruh/admin/devices/insights',
+                active: false,
+            },
+        ],
     },
     {
         name: 'Tasks',

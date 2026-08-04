@@ -632,6 +632,55 @@ body {
 		}
 	}
 
+	// Small colored dot — reused for profile identification across insights tables.
+	.profile-dot {
+		display: inline-block;
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		flex-shrink: 0;
+	}
+
+	// Insights admin — device metrics + hour-of-day matrix
+	.insights-table {
+		border-collapse: collapse;
+		width: 100%;
+		font-size: 0.9em;
+
+		th, td {
+			padding: 6px 10px;
+			border-bottom: 1px solid var(--color-border-subtle);
+			text-align: right;
+			white-space: nowrap;
+		}
+
+		// First column (device / hour label) is left-aligned.
+		th:first-child, td:first-child {
+			text-align: left;
+		}
+
+		thead th {
+			font-weight: bold;
+			background-color: var(--color-surface-chrome);
+			border-bottom: 2px solid var(--color-border-subtle);
+		}
+
+		// Faint band to separate 24h vs 7d groups in the header.
+		.group-24h {
+			border-left: 2px solid var(--color-border-subtle);
+		}
+		.group-7d {
+			border-left: 2px solid var(--color-border-subtle);
+		}
+
+		&.insights-hourly {
+			tbody td:first-child {
+				font-family: monospace;
+				opacity: 0.7;
+			}
+		}
+	}
+
 	// Devices admin — device rows with per-row profile dropdown
 	.devices-table {
 		border-collapse: collapse;

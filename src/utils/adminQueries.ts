@@ -813,6 +813,198 @@ export async function qryUpsertDevice(
     `;
 }
 
+// INSIGHTS — location-firehose analysis
+// Timezone hard-coded to America/New_York (single admin, single household).
+// If the admin moves timezones, this becomes a config value.
+const INSIGHTS_TZ = 'America/New_York';
+
+export type InsightsPeriod = {
+    // Total rows inserted in the period
+    pings: number;
+    // Distinct ~10m cells (lat/lon rounded to 4 decimals) — GPS-jitter-level resolution.
+    // A stationary phone can rack these up just from fix noise, so this number is
+    // most useful compared against distinctCells100m to spot jitter.
+    distinctCells10m: number;
+    // Distinct ~100m cells (lat/lon rounded to 3 decimals) — "same block" resolution.
+    // Honest "distinct places" number.
+    distinctCells100m: number;
+    // Typical accuracy — high number = jittery fix, low = solid
+    medianAccuracyM: number | null;
+    // Lowest battery seen while OFF charger — the "how much did we drain it" number
+    minBatteryOffCharger: number | null;
+    // Max seconds between consecutive pings — big gap = background mode gave up
+    maxGapSeconds: number | null;
+};
+
+export type InsightsHourBucket = {
+    // 0–23 in the configured local timezone
+    hour: number;
+    // Average pings during this hour-of-day, over the last 7 days
+    avgPings: number;
+};
+
+export type InsightsDevice = {
+    devicesId: string;
+    deviceName: string | null;
+    platform: string | null;
+    profileName: string | null;
+    profileColor: string | null;
+    period24h: InsightsPeriod;
+    period7d: InsightsPeriod;
+    hourly7d: InsightsHourBucket[];
+    // Extrapolation of last-24h rate → rows if this pace held for 30 days.
+    projectedRowsPerMonth: number;
+};
+
+export type InsightsPayload = {
+    generatedAt: string;
+    timezone: string;
+    devices: InsightsDevice[];
+};
+
+type SummaryRow = {
+    devicesId: string;
+    deviceName: string | null;
+    platform: string | null;
+    profileName: string | null;
+    profileColor: string | null;
+    pings24h: number;
+    distinctCells10m24h: number;
+    distinctCells100m24h: number;
+    medianAccuracy24h: number | null;
+    minBatteryOff24h: number | null;
+    maxGapSeconds24h: number | null;
+    pings7d: number;
+    distinctCells10m7d: number;
+    distinctCells100m7d: number;
+    medianAccuracy7d: number | null;
+    minBatteryOff7d: number | null;
+    maxGapSeconds7d: number | null;
+};
+
+type HourlyRow = {
+    devicesId: string;
+    hour: number;
+    pings: number;
+};
+
+export async function qryGetLocationInsights(): Promise<InsightsPayload> {
+    // One row per device with 24h + 7d aggregates. The FILTER (WHERE ...)
+    // clause lets us compute both windows in a single scan of the last 7d
+    // slice of the locations table (indexed by received_at).
+    // Gaps are computed in a subquery via LAG then MAX'd here.
+    const summary = (await sql`
+        with recent as (
+            select l.*,
+                   extract(epoch from
+                       l.received_at
+                       - lag(l.received_at) over (partition by l.device_id order by l.received_at)
+                   ) as gap_seconds
+            from locations l
+            where l.received_at > now() - interval '7 days'
+        )
+        select d.devices_id                                             as "devicesId",
+               d.name                                                    as "deviceName",
+               d.platform                                                as platform,
+               p.name                                                    as "profileName",
+               p.color                                                   as "profileColor",
+               count(*) filter (where r.received_at > now() - interval '24 hours')                                    as "pings24h",
+               count(distinct (round(r.latitude::numeric, 4) || ',' || round(r.longitude::numeric, 4)))
+                   filter (where r.received_at > now() - interval '24 hours')                                          as "distinctCells10m24h",
+               count(distinct (round(r.latitude::numeric, 3) || ',' || round(r.longitude::numeric, 3)))
+                   filter (where r.received_at > now() - interval '24 hours')                                          as "distinctCells100m24h",
+               percentile_cont(0.5) within group (order by r.horizontal_accuracy)
+                   filter (where r.received_at > now() - interval '24 hours' and r.horizontal_accuracy > 0)            as "medianAccuracy24h",
+               min(r.battery_level)
+                   filter (where r.received_at > now() - interval '24 hours' and not r.is_charging and r.battery_level >= 0) as "minBatteryOff24h",
+               max(r.gap_seconds)
+                   filter (where r.received_at > now() - interval '24 hours')                                          as "maxGapSeconds24h",
+               count(*)                                                                                                as "pings7d",
+               count(distinct (round(r.latitude::numeric, 4) || ',' || round(r.longitude::numeric, 4)))                as "distinctCells10m7d",
+               count(distinct (round(r.latitude::numeric, 3) || ',' || round(r.longitude::numeric, 3)))                as "distinctCells100m7d",
+               percentile_cont(0.5) within group (order by r.horizontal_accuracy)
+                   filter (where r.horizontal_accuracy > 0)                                                             as "medianAccuracy7d",
+               min(r.battery_level)
+                   filter (where not r.is_charging and r.battery_level >= 0)                                            as "minBatteryOff7d",
+               max(r.gap_seconds)                                                                                       as "maxGapSeconds7d"
+        from devices d
+                 left join profiles p on p.profiles_id = d.profiles_id
+                 left join recent r on r.device_id = d.devices_id
+        group by d.devices_id, d.name, d.platform, p.name, p.color
+        order by lower(coalesce(p.name, d.name, '')), d.devices_id
+    `) as SummaryRow[];
+
+    // Hour-of-day buckets across last 7d, in local time so "3am" means user's 3am.
+    // Kept as a single query (not per-device loop) — one scan, group by device+hour.
+    const hourly = (await sql`
+        select d.devices_id                                                                    as "devicesId",
+               extract(hour from l.received_at at time zone ${INSIGHTS_TZ})::int              as hour,
+               count(*)::int                                                                   as pings
+        from locations l
+                 inner join devices d on d.devices_id = l.device_id
+        where l.received_at > now() - interval '7 days'
+        group by d.devices_id, hour
+        order by d.devices_id, hour
+    `) as HourlyRow[];
+
+    // Group hourly by device for O(1) lookup while building the payload.
+    const hourlyByDevice = new Map<string, HourlyRow[]>();
+    for (const row of hourly) {
+        const list = hourlyByDevice.get(row.devicesId) ?? [];
+        list.push(row);
+        hourlyByDevice.set(row.devicesId, list);
+    }
+
+    const devices: InsightsDevice[] = summary.map((s) => {
+        // Fill in all 24 hours so consumers get a stable-length array,
+        // even for hours with zero pings.
+        const raw = hourlyByDevice.get(s.devicesId) ?? [];
+        const byHour = new Map(raw.map((r) => [r.hour, r.pings] as const));
+        const hourly7d: InsightsHourBucket[] = Array.from({ length: 24 }, (_, hour) => ({
+            hour,
+            avgPings: Math.round(((byHour.get(hour) ?? 0) / 7) * 100) / 100,
+        }));
+
+        return {
+            devicesId: s.devicesId,
+            deviceName: s.deviceName,
+            platform: s.platform,
+            profileName: s.profileName,
+            profileColor: s.profileColor,
+            period24h: {
+                pings: Number(s.pings24h ?? 0),
+                distinctCells10m: Number(s.distinctCells10m24h ?? 0),
+                distinctCells100m: Number(s.distinctCells100m24h ?? 0),
+                medianAccuracyM: s.medianAccuracy24h !== null ? Number(s.medianAccuracy24h) : null,
+                minBatteryOffCharger:
+                    s.minBatteryOff24h !== null ? Number(s.minBatteryOff24h) : null,
+                maxGapSeconds:
+                    s.maxGapSeconds24h !== null ? Math.round(Number(s.maxGapSeconds24h)) : null,
+            },
+            period7d: {
+                pings: Number(s.pings7d ?? 0),
+                distinctCells10m: Number(s.distinctCells10m7d ?? 0),
+                distinctCells100m: Number(s.distinctCells100m7d ?? 0),
+                medianAccuracyM: s.medianAccuracy7d !== null ? Number(s.medianAccuracy7d) : null,
+                minBatteryOffCharger:
+                    s.minBatteryOff7d !== null ? Number(s.minBatteryOff7d) : null,
+                maxGapSeconds:
+                    s.maxGapSeconds7d !== null ? Math.round(Number(s.maxGapSeconds7d)) : null,
+            },
+            hourly7d,
+            // Extrapolate 24h rate → 30-day projection. Rough but useful for
+            // sizing the retention decision.
+            projectedRowsPerMonth: Number(s.pings24h ?? 0) * 30,
+        };
+    });
+
+    return {
+        generatedAt: new Date().toISOString(),
+        timezone: INSIGHTS_TZ,
+        devices,
+    };
+}
+
 export type locationType = {
     device_id?: string;
     latitude?: number;
