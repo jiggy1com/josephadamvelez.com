@@ -18,6 +18,10 @@ export type Profile = {
     isChild: boolean;
     isParent: boolean;
     isAdmin: boolean;
+    // The dedicated shared-viewer profile used for the wall/kiosk device.
+    // At most one row can have this true (enforced by partial unique index).
+    // Not a child, not a parent, not an admin — its own thing.
+    isHousehold: boolean;
     // Profile-picked accent color (hex). Null = fallback to app primary.
     // Set here; every profile-specific UI surface (map markers, task lists,
     // chore attribution, etc.) reads it back from Profile.
@@ -88,13 +92,14 @@ export async function qryGetProfileByForgotPasswordToken(
     token: string,
 ): Promise<Profile | undefined> {
     const rows = (await sql`
-        select profiles_id as "profilesId",
+        select profiles_id  as "profilesId",
                name,
                email,
                username,
-               is_child   as "isChild",
-               is_parent  as "isParent",
-               is_admin   as "isAdmin",
+               is_child     as "isChild",
+               is_parent    as "isParent",
+               is_admin     as "isAdmin",
+               is_household as "isHousehold",
                color
         from profiles
         where forgot_password_token = ${token}
@@ -120,14 +125,16 @@ export async function qryResetPasswordByToken(
 
 export async function qryGetProfileForAuth(username: string): Promise<ProfileForAuth | undefined> {
     const rows = (await sql`
-        select profiles_id as "profilesId",
+        select profiles_id  as "profilesId",
                name,
                email,
                username,
-               is_child   as "isChild",
-               is_parent  as "isParent",
-               is_admin   as "isAdmin",
-               password   as "passwordHash",
+               is_child     as "isChild",
+               is_parent    as "isParent",
+               is_admin     as "isAdmin",
+               is_household as "isHousehold",
+               color,
+               password     as "passwordHash",
                salt
         from profiles
         where username = ${username.toLowerCase()}
@@ -140,13 +147,14 @@ export async function qryGetProfileForAuth(username: string): Promise<ProfileFor
 // the auth flow via a dedicated query.
 export async function qryGetProfileList(): Promise<Profile[]> {
     return (await sql`
-        select profiles_id as "profilesId",
+        select profiles_id  as "profilesId",
                name,
                email,
                username,
-               is_child   as "isChild",
-               is_parent  as "isParent",
-               is_admin   as "isAdmin",
+               is_child     as "isChild",
+               is_parent    as "isParent",
+               is_admin     as "isAdmin",
+               is_household as "isHousehold",
                color
         from profiles
         order by lower(name)
@@ -155,13 +163,14 @@ export async function qryGetProfileList(): Promise<Profile[]> {
 
 export async function qryGetProfileById(profilesId: number): Promise<Profile | undefined> {
     const rows = (await sql`
-        select profiles_id as "profilesId",
+        select profiles_id  as "profilesId",
                name,
                email,
                username,
-               is_child   as "isChild",
-               is_parent  as "isParent",
-               is_admin   as "isAdmin",
+               is_child     as "isChild",
+               is_parent    as "isParent",
+               is_admin     as "isAdmin",
+               is_household as "isHousehold",
                color
         from profiles
         where profiles_id = ${profilesId}
@@ -241,6 +250,74 @@ export async function qryDeleteProfile(profilesId: number) {
         delete
         from profiles
         where profiles_id = ${profilesId}
+    `;
+}
+
+// HOUSEHOLD PROFILE
+// Kept separate from the general profile CRUD because it has different rules:
+// - At most one row can be is_household = true (enforced by partial unique index)
+// - Onboarding creates it; the admin form can edit name/email/username/password
+//   but not the role flags, is_admin, or color
+// - It cannot be deleted
+
+export async function qryHasHouseholdProfile(): Promise<boolean> {
+    const rows = (await sql`
+        select 1 from profiles where is_household = true limit 1
+    `) as { '?column?': number }[];
+    return rows.length > 0;
+}
+
+export async function qryAddHouseholdProfile(
+    input: { name: string; email: string; username: string },
+    passwordHash: string,
+    salt: string,
+) {
+    return sql`
+        insert into profiles (name, email, username, password, salt,
+                              is_child, is_parent, is_admin, is_household)
+        values (${input.name},
+                ${input.email.toLowerCase()},
+                ${input.username.toLowerCase()},
+                ${passwordHash},
+                ${salt},
+                false, false, false, true)
+        returning profiles_id as "profilesId", name
+    `;
+}
+
+// Limited-scope update for the household profile — no role flags, no admin, no color.
+// Password optional (empty = keep existing).
+export async function qryUpdateHouseholdProfile(
+    profilesId: number,
+    input: { name: string; email: string; username: string },
+    passwordHash?: string,
+    salt?: string,
+) {
+    const email = input.email.toLowerCase();
+    const username = input.username.toLowerCase();
+
+    if (passwordHash && salt) {
+        return sql`
+            update profiles
+            set name     = ${input.name},
+                email    = ${email},
+                username = ${username},
+                password = ${passwordHash},
+                salt     = ${salt}
+            where profiles_id = ${profilesId}
+              and is_household = true
+            returning profiles_id as "profilesId", name
+        `;
+    }
+
+    return sql`
+        update profiles
+        set name     = ${input.name},
+            email    = ${email},
+            username = ${username}
+        where profiles_id = ${profilesId}
+          and is_household = true
+        returning profiles_id as "profilesId", name
     `;
 }
 
@@ -724,13 +801,17 @@ export type DeviceLocationRow = {
     } | null;
     battery: number | null;
     charging: boolean | null;
+    // Friendly name of the nearest matching known_location (within its radius).
+    // Null when no known place covers this coord.
+    placeName: string | null;
 };
 
 // Kids-facing map data. Only surfaces devices that (a) have a profile assigned
 // and (b) have at least one location on record — anything else is admin/setup
-// noise and shouldn't appear as a marker.
+// noise and shouldn't appear as a marker. Enriches each row with a nearest
+// known-place match so popups can show "Willow — Bob's House" instead of coords.
 export async function qryGetLastKnownDeviceLocation(): Promise<DeviceLocationRow[]> {
-    return (await sql`
+    const rows = (await sql`
         select d.devices_id           as "deviceId",
                d.name                 as "deviceName",
                d.platform,
@@ -753,7 +834,17 @@ export async function qryGetLastKnownDeviceLocation(): Promise<DeviceLocationRow
             order by device_timestamp desc
                 limit 1
             ) l on true
-    `) as DeviceLocationRow[];
+    `) as Omit<DeviceLocationRow, 'placeName'>[];
+
+    // Fetch the (small) known_locations list once and enrich every row in-process.
+    // Family scale = ~10-30 places × ~5 devices = trivial compute.
+    const places = await qryGetKnownLocationsList();
+    return rows.map((r) => ({
+        ...r,
+        placeName: r.location
+            ? nearestPlace(r.location.latitude, r.location.longitude, places)?.name ?? null
+            : null,
+    }));
 }
 
 export type DeviceRow = {
@@ -795,6 +886,91 @@ export async function qryAssignDeviceToProfile(
     `;
 }
 
+// DEVICE HISTORY — all pings for a single device on a specific local date.
+// Ordered by received_at (server truth) since device_timestamp can be stale
+// due to cached CoreLocation fixes.
+
+export type DeviceHistoryPing = {
+    latitude: number;
+    longitude: number;
+    // Server-received time (source of truth for ordering + filtering).
+    receivedAt: string;
+    // Device-reported capture time (can be stale; still useful to show in the popup).
+    deviceTimestamp: string | null;
+    accuracy: number | null;
+    battery: number | null;
+    charging: boolean | null;
+    // Nearest known place covering this ping's coord, if any.
+    placeName: string | null;
+};
+
+export type DeviceHistoryPayload = {
+    device: {
+        deviceId: string;
+        deviceName: string | null;
+        platform: string | null;
+        profileName: string | null;
+        profileColor: string | null;
+    };
+    // The local-date string (YYYY-MM-DD) that was queried, echoed back so the UI
+    // can render it without re-parsing the input.
+    date: string;
+    // Timezone that "date" was interpreted in.
+    timezone: string;
+    pings: DeviceHistoryPing[];
+};
+
+// Same TZ constant used by insights — one place to change if we ever go multi-timezone.
+const HISTORY_TZ = 'America/New_York';
+
+export async function qryGetDeviceHistory(
+    deviceId: string,
+    date: string,
+): Promise<DeviceHistoryPayload | null> {
+    const deviceRows = (await sql`
+        select d.devices_id  as "deviceId",
+               d.name        as "deviceName",
+               d.platform,
+               p.name        as "profileName",
+               p.color       as "profileColor"
+        from devices d
+                 left join profiles p on p.profiles_id = d.profiles_id
+        where d.devices_id = ${deviceId}
+    `) as DeviceHistoryPayload['device'][];
+
+    if (deviceRows.length === 0) return null;
+
+    const rawPings = (await sql`
+        select l.latitude,
+               l.longitude,
+               l.received_at        as "receivedAt",
+               l.device_timestamp   as "deviceTimestamp",
+               l.horizontal_accuracy as accuracy,
+               l.battery_level      as battery,
+               l.is_charging        as charging
+        from locations l
+        where l.device_id = ${deviceId}
+          and (l.received_at at time zone ${HISTORY_TZ})::date = ${date}::date
+        order by l.received_at asc
+    `) as Omit<DeviceHistoryPing, 'placeName'>[];
+
+    // Same trick as the current-location query — enrich in-process against the
+    // full known_locations list. Trivial cost at family scale even for a
+    // ~400-ping day.
+    const places = await qryGetKnownLocationsList();
+    const pings: DeviceHistoryPing[] = rawPings.map((p) => ({
+        ...p,
+        placeName: nearestPlace(p.latitude, p.longitude, places)?.name ?? null,
+    }));
+
+    return {
+        device: deviceRows[0],
+        date,
+        timezone: HISTORY_TZ,
+        pings,
+    };
+}
+
 // Called on every location ping — the mobile app is just a beacon and doesn't
 // register itself separately. We upsert so first-ping creates the device row,
 // and later pings refresh name/platform if they changed (e.g. user renamed
@@ -811,6 +987,223 @@ export async function qryUpsertDevice(
             set name     = coalesce(excluded.name, devices.name),
                 platform = coalesce(excluded.platform, devices.platform)
     `;
+}
+
+// LOCATION EVENTS — geofence arrivals/departures.
+// Computed on the server as each ping arrives; readers just query the feed.
+
+export type LocationEventType = 'arrival' | 'departure';
+
+export type LocationEventFeedRow = {
+    eventId: number;
+    devicesId: string;
+    deviceName: string | null;
+    profilesId: number | null;
+    profileName: string | null;
+    profileColor: string | null;
+    knownLocationsId: number;
+    placeName: string;
+    eventType: LocationEventType;
+    occurredAt: string;
+    latitude: number;
+    longitude: number;
+};
+
+// Fetch device's most recent location BEFORE inserting a new ping. Used by
+// location-add to compute geofence transitions (the new ping is compared
+// against the last-known position).
+export async function qryGetLastLocationForDevice(
+    deviceId: string,
+): Promise<{ latitude: number; longitude: number } | null> {
+    const rows = (await sql`
+        select latitude, longitude
+        from locations
+        where device_id = ${deviceId}
+        order by received_at desc
+        limit 1
+    `) as { latitude: number; longitude: number }[];
+    return rows[0] ?? null;
+}
+
+export async function qryInsertLocationEvent(input: {
+    devicesId: string;
+    knownLocationsId: number;
+    eventType: LocationEventType;
+    latitude: number;
+    longitude: number;
+}): Promise<void> {
+    await sql`
+        insert into location_events (devices_id, known_locations_id, event_type, latitude, longitude)
+        values (${input.devicesId}, ${input.knownLocationsId}, ${input.eventType},
+                ${input.latitude}, ${input.longitude})
+    `;
+}
+
+export type LocationEventFilter = {
+    profilesId?: number;
+    knownLocationsId?: number;
+    // Inclusive date bounds in ISO YYYY-MM-DD (local time, interpreted in HISTORY_TZ).
+    since?: string;
+    until?: string;
+    limit?: number;
+};
+
+export async function qryGetLocationEventsFeed(
+    filter: LocationEventFilter = {},
+): Promise<LocationEventFeedRow[]> {
+    // Cap the limit — the feed page paginates via since/until, not offset/limit,
+    // so an unbounded return would only hurt.
+    const limit = Math.min(filter.limit ?? 200, 500);
+    // Optional filters use the "param IS NULL OR col = param" pattern so a single
+    // query handles all combinations. Nulls come through the neon driver as
+    // untyped, hence the explicit ::int / ::date casts on the parameter side.
+    const profilesId = filter.profilesId ?? null;
+    const knownLocationsId = filter.knownLocationsId ?? null;
+    const since = filter.since ?? null;
+    const until = filter.until ?? null;
+    return (await sql`
+        select le.event_id            as "eventId",
+               le.devices_id          as "devicesId",
+               d.name                 as "deviceName",
+               p.profiles_id          as "profilesId",
+               p.name                 as "profileName",
+               p.color                as "profileColor",
+               le.known_locations_id  as "knownLocationsId",
+               kl.name                as "placeName",
+               le.event_type          as "eventType",
+               le.occurred_at         as "occurredAt",
+               le.latitude, le.longitude
+        from location_events le
+                 inner join devices d on d.devices_id = le.devices_id
+                 left join profiles p on p.profiles_id = d.profiles_id
+                 inner join known_locations kl on kl.known_locations_id = le.known_locations_id
+        where (${profilesId}::int is null or p.profiles_id = ${profilesId}::int)
+          and (${knownLocationsId}::int is null or le.known_locations_id = ${knownLocationsId}::int)
+          and (${since}::text is null or (le.occurred_at at time zone ${HISTORY_TZ})::date >= ${since}::date)
+          and (${until}::text is null or (le.occurred_at at time zone ${HISTORY_TZ})::date <= ${until}::date)
+        order by le.occurred_at desc
+        limit ${limit}
+    `) as LocationEventFeedRow[];
+}
+
+// KNOWN LOCATIONS — household-shared friendly names for coordinates.
+// A ping is considered "at" a known location when it falls within that
+// location's radius_m. Multiple places with overlapping radii resolve to
+// the nearest by center-to-center distance.
+
+export type KnownLocation = {
+    knownLocationsId: number;
+    name: string;
+    latitude: number;
+    longitude: number;
+    radiusM: number;
+    address: string | null;
+};
+
+export async function qryGetKnownLocationsList(): Promise<KnownLocation[]> {
+    return (await sql`
+        select known_locations_id as "knownLocationsId",
+               name,
+               latitude,
+               longitude,
+               radius_m           as "radiusM",
+               address
+        from known_locations
+        order by lower(name)
+    `) as KnownLocation[];
+}
+
+export async function qryGetKnownLocationById(
+    knownLocationsId: number,
+): Promise<KnownLocation | undefined> {
+    const rows = (await sql`
+        select known_locations_id as "knownLocationsId",
+               name,
+               latitude,
+               longitude,
+               radius_m           as "radiusM",
+               address
+        from known_locations
+        where known_locations_id = ${knownLocationsId}
+    `) as KnownLocation[];
+    return rows[0];
+}
+
+export type KnownLocationInput = {
+    name: string;
+    latitude: number;
+    longitude: number;
+    radiusM: number;
+    address?: string | null;
+};
+
+export async function qryAddKnownLocation(input: KnownLocationInput) {
+    const address = input.address ?? null;
+    return sql`
+        insert into known_locations (name, latitude, longitude, radius_m, address)
+        values (${input.name}, ${input.latitude}, ${input.longitude}, ${input.radiusM}, ${address})
+        returning known_locations_id as "knownLocationsId", name
+    `;
+}
+
+export async function qryUpdateKnownLocation(
+    knownLocationsId: number,
+    input: KnownLocationInput,
+) {
+    const address = input.address ?? null;
+    return sql`
+        update known_locations
+        set name      = ${input.name},
+            latitude  = ${input.latitude},
+            longitude = ${input.longitude},
+            radius_m  = ${input.radiusM},
+            address   = ${address}
+        where known_locations_id = ${knownLocationsId}
+        returning known_locations_id as "knownLocationsId", name
+    `;
+}
+
+export async function qryDeleteKnownLocation(knownLocationsId: number) {
+    return sql`
+        delete from known_locations where known_locations_id = ${knownLocationsId}
+    `;
+}
+
+// Haversine distance in meters between two (lat, lon) pairs.
+// Kept small and unit-testable — the SQL alternative works but reads like
+// alien technology and doesn't scale better at family volumes.
+export function haversineMeters(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number,
+): number {
+    const R = 6371000;
+    const toRad = (deg: number) => (deg * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+// Returns the nearest known location whose center is within its own radius
+// of (lat, lon). Null if none match. `places` is passed in to avoid a per-call
+// DB round trip — callers fetch the list once and pass it in for each ping.
+export function nearestPlace(
+    lat: number,
+    lon: number,
+    places: KnownLocation[],
+): KnownLocation | null {
+    let best: { place: KnownLocation; dist: number } | null = null;
+    for (const p of places) {
+        const d = haversineMeters(lat, lon, p.latitude, p.longitude);
+        if (d <= p.radiusM && (!best || d < best.dist)) {
+            best = { place: p, dist: d };
+        }
+    }
+    return best?.place ?? null;
 }
 
 // INSIGHTS — location-firehose analysis
@@ -839,8 +1232,12 @@ export type InsightsPeriod = {
 export type InsightsHourBucket = {
     // 0–23 in the configured local timezone
     hour: number;
-    // Average pings during this hour-of-day, over the last 7 days
-    avgPings: number;
+    // Raw pings during this hour-of-day in the last 24 hours (single day, not averaged).
+    // Best signal when data is sparse or you want to see what actually happened today.
+    pings24h: number;
+    // Average pings during this hour-of-day, over the last 7 days (total/7).
+    // Best signal for spotting recurring patterns once you have a full week.
+    avgPings7d: number;
 };
 
 export type InsightsDevice = {
@@ -851,7 +1248,9 @@ export type InsightsDevice = {
     profileColor: string | null;
     period24h: InsightsPeriod;
     period7d: InsightsPeriod;
-    hourly7d: InsightsHourBucket[];
+    // Per-hour-of-day buckets (0–23 local time). Each bucket carries both 24h raw
+    // pings and 7d average pings so consumers can toggle between views.
+    hourly: InsightsHourBucket[];
     // Extrapolation of last-24h rate → rows if this pace held for 30 days.
     projectedRowsPerMonth: number;
 };
@@ -885,7 +1284,10 @@ type SummaryRow = {
 type HourlyRow = {
     devicesId: string;
     hour: number;
-    pings: number;
+    // Pings in this hour-of-day, within the last 24 hours.
+    pings24h: number;
+    // Pings in this hour-of-day, across the whole 7-day window.
+    pings7d: number;
 };
 
 export async function qryGetLocationInsights(): Promise<InsightsPayload> {
@@ -935,11 +1337,12 @@ export async function qryGetLocationInsights(): Promise<InsightsPayload> {
     `) as SummaryRow[];
 
     // Hour-of-day buckets across last 7d, in local time so "3am" means user's 3am.
-    // Kept as a single query (not per-device loop) — one scan, group by device+hour.
+    // Both windows computed in one scan via FILTER — 24h subset uses the same rows.
     const hourly = (await sql`
-        select d.devices_id                                                                    as "devicesId",
-               extract(hour from l.received_at at time zone ${INSIGHTS_TZ})::int              as hour,
-               count(*)::int                                                                   as pings
+        select d.devices_id                                                                       as "devicesId",
+               extract(hour from l.received_at at time zone ${INSIGHTS_TZ})::int                 as hour,
+               count(*) filter (where l.received_at > now() - interval '24 hours')::int          as "pings24h",
+               count(*)::int                                                                      as "pings7d"
         from locations l
                  inner join devices d on d.devices_id = l.device_id
         where l.received_at > now() - interval '7 days'
@@ -959,11 +1362,15 @@ export async function qryGetLocationInsights(): Promise<InsightsPayload> {
         // Fill in all 24 hours so consumers get a stable-length array,
         // even for hours with zero pings.
         const raw = hourlyByDevice.get(s.devicesId) ?? [];
-        const byHour = new Map(raw.map((r) => [r.hour, r.pings] as const));
-        const hourly7d: InsightsHourBucket[] = Array.from({ length: 24 }, (_, hour) => ({
-            hour,
-            avgPings: Math.round(((byHour.get(hour) ?? 0) / 7) * 100) / 100,
-        }));
+        const byHour = new Map(raw.map((r) => [r.hour, r] as const));
+        const hourly: InsightsHourBucket[] = Array.from({ length: 24 }, (_, hour) => {
+            const row = byHour.get(hour);
+            return {
+                hour,
+                pings24h: Number(row?.pings24h ?? 0),
+                avgPings7d: Math.round((Number(row?.pings7d ?? 0) / 7) * 100) / 100,
+            };
+        });
 
         return {
             devicesId: s.devicesId,
@@ -991,7 +1398,7 @@ export async function qryGetLocationInsights(): Promise<InsightsPayload> {
                 maxGapSeconds:
                     s.maxGapSeconds7d !== null ? Math.round(Number(s.maxGapSeconds7d)) : null,
             },
-            hourly7d,
+            hourly,
             // Extrapolate 24h rate → 30-day projection. Rough but useful for
             // sizing the retention decision.
             projectedRowsPerMonth: Number(s.pings24h ?? 0) * 30,

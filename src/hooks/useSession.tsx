@@ -12,7 +12,7 @@ export type SessionUser = {
     profilesId: number;
     username: string;
     name: string;
-    role: 'child' | 'parent';
+    role: 'child' | 'parent' | 'household';
     isAdmin: boolean;
 };
 

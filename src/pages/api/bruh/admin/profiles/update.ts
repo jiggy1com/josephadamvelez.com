@@ -1,5 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { qryUpdateProfile } from '@/utils/adminQueries';
+import {
+    qryGetProfileById,
+    qryUpdateHouseholdProfile,
+    qryUpdateProfile,
+} from '@/utils/adminQueries';
 import { generateSalt, hashPassword, validatePassword, validateUsername } from '@/utils/password';
 import { handleServerError } from '@/utils/apiErrors';
 
@@ -13,11 +17,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const email = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
     const username = typeof req.body?.username === 'string' ? req.body.username.trim() : '';
     const password = typeof req.body?.password === 'string' ? req.body.password : '';
-    const isChild = Boolean(req.body?.isChild);
-    const isParent = Boolean(req.body?.isParent);
-    const isAdmin = Boolean(req.body?.isAdmin);
-    const rawColor = typeof req.body?.color === 'string' ? req.body.color.trim() : '';
-    const color = /^#[0-9a-fA-F]{6}$/.test(rawColor) ? rawColor : null;
 
     if (!profilesId || !name) {
         return res
@@ -36,11 +35,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .status(400)
             .json({ success: false, error: `Username: ${usernameCheck.errors.join('; ')}` });
     }
-    if (isChild === isParent) {
-        return res
-            .status(400)
-            .json({ success: false, error: 'Must be exactly one of child or parent' });
-    }
 
     // Password only changes when the admin provides a new one. Empty means "leave alone."
     let passwordHash: string | undefined;
@@ -57,6 +51,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
+        // Household profiles have a restricted update surface — role toggles,
+        // isAdmin, and color are all frozen. Silently drop those fields even
+        // if the caller sends them.
+        const existing = await qryGetProfileById(profilesId);
+        if (existing?.isHousehold) {
+            const data = await qryUpdateHouseholdProfile(
+                profilesId,
+                { name, email, username },
+                passwordHash,
+                salt,
+            );
+            return res.status(200).json({ success: true, data });
+        }
+
+        // Regular profile — enforce role + color validation the standard way.
+        const isChild = Boolean(req.body?.isChild);
+        const isParent = Boolean(req.body?.isParent);
+        const isAdmin = Boolean(req.body?.isAdmin);
+        const rawColor = typeof req.body?.color === 'string' ? req.body.color.trim() : '';
+        const color = /^#[0-9a-fA-F]{6}$/.test(rawColor) ? rawColor : null;
+        if (isChild === isParent) {
+            return res
+                .status(400)
+                .json({ success: false, error: 'Must be exactly one of child or parent' });
+        }
+
         const data = await qryUpdateProfile(
             profilesId,
             {

@@ -2,14 +2,18 @@ import { jwtVerify, SignJWT } from 'jose';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 export const SESSION_COOKIE_NAME = 'bruh_session';
-const SESSION_DURATION_SECONDS = 60 * 60 * 24 * 7; // 7 days
+// One year — the wall kiosk stays logged in indefinitely, individual devices
+// only re-auth once a year. Rotate JWT_SECRET to invalidate all sessions.
+const SESSION_DURATION_SECONDS = 60 * 60 * 24 * 365;
 
 // The claims we bake into the JWT. Nothing sensitive here — no password, no salt.
 export type SessionPayload = {
     profilesId: number;
     username: string;
     name: string;
-    role: 'child' | 'parent';
+    // 'household' = the shared wall/kiosk viewer profile. Not admin, not child,
+    // not parent. Can access /bruh/* but not /bruh/admin/*.
+    role: 'child' | 'parent' | 'household';
     isAdmin: boolean;
 };
 
@@ -37,7 +41,9 @@ export async function verifySession(token: string): Promise<SessionPayload | nul
             typeof payload.profilesId === 'number' &&
             typeof payload.username === 'string' &&
             typeof payload.name === 'string' &&
-            (payload.role === 'child' || payload.role === 'parent') &&
+            (payload.role === 'child' ||
+                payload.role === 'parent' ||
+                payload.role === 'household') &&
             typeof payload.isAdmin === 'boolean'
         ) {
             return {

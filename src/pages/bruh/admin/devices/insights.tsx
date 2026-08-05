@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Section } from '@/components/section/Section';
 import { Alert, AlertType } from '@/components/alert/Alert';
+import { SegmentedControl } from '@/components/segmented-control/SegmentedControl';
 import type { InsightsPayload } from '@/utils/adminQueries';
 import { resolveProfileColor } from '@/constants/profileColors';
+
+type HourlyView = '24h' | '7d';
 
 function fmt(n: number | null | undefined, digits = 1): string {
     if (n === null || n === undefined) return '—';
@@ -26,6 +29,7 @@ export default function BruhAdminDevicesInsights() {
     const [payload, setPayload] = useState<InsightsPayload | null>(null);
     const [alert, setAlert] = useState<AlertType>({ success: false, message: '' });
     const [copied, setCopied] = useState(false);
+    const [hourlyView, setHourlyView] = useState<HourlyView>('24h');
 
     useEffect(() => {
         void (async () => {
@@ -176,14 +180,25 @@ export default function BruhAdminDevicesInsights() {
                             </table>
                         </div>
 
-                        <h2 style={{ marginTop: 30, marginBottom: 4 }}>
-                            Average pings per hour of day (last 7 days)
+                        <h2 style={{ marginTop: 30, marginBottom: 8 }}>
+                            Pings per hour of day
                         </h2>
-                        <p style={{ opacity: 0.7, marginBottom: 10, fontSize: '0.9em' }}>
-                            Rows are hours in {payload.timezone}. Each cell = total pings for
-                            that hour across the last 7 days, divided by 7. Use this to spot
-                            "we&apos;re asleep but the app is still chatty" patterns.
-                        </p>
+                        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
+                            <SegmentedControl<HourlyView>
+                                ariaLabel={'Hourly view'}
+                                value={hourlyView}
+                                onChange={setHourlyView}
+                                options={[
+                                    { value: '24h', label: 'Last 24h' },
+                                    { value: '7d', label: '7d avg' },
+                                ]}
+                            />
+                            <span style={{ opacity: 0.7, fontSize: '0.9em' }}>
+                                {hourlyView === '24h'
+                                    ? `Raw ping counts in the last 24 hours, bucketed by hour of day (${payload.timezone}).`
+                                    : `Average pings per hour of day over the last 7 days (${payload.timezone}). Best for recurring patterns.`}
+                            </span>
+                        </div>
                         <div style={{ overflowX: 'auto' }}>
                             <table className={'insights-table insights-hourly'}>
                                 <thead>
@@ -210,13 +225,18 @@ export default function BruhAdminDevicesInsights() {
                                                 {hour.toString().padStart(2, '0')}:00
                                             </td>
                                             {payload.devices.map((d) => {
-                                                const bucket = d.hourly7d.find((h) => h.hour === hour);
-                                                const v = bucket?.avgPings ?? 0;
-                                                return (
-                                                    <td key={d.devicesId}>
-                                                        {v === 0 ? '—' : v.toFixed(1)}
-                                                    </td>
-                                                );
+                                                const bucket = d.hourly.find((h) => h.hour === hour);
+                                                const v =
+                                                    hourlyView === '24h'
+                                                        ? bucket?.pings24h ?? 0
+                                                        : bucket?.avgPings7d ?? 0;
+                                                if (v === 0) {
+                                                    return <td key={d.devicesId}>—</td>;
+                                                }
+                                                // 24h is a raw integer count; 7d is an average with 1 decimal.
+                                                const display =
+                                                    hourlyView === '24h' ? v.toString() : v.toFixed(1);
+                                                return <td key={d.devicesId}>{display}</td>;
                                             })}
                                         </tr>
                                     ))}

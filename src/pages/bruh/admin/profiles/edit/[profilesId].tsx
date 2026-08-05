@@ -50,7 +50,9 @@ export default function BruhAdminProfilesEdit({ profile }: Props) {
     const passwordCheck = validatePassword(password);
     // Password is optional on edit — only validate if the admin actually typed something.
     const passwordOk = password.length === 0 || passwordCheck.valid;
-    const canSubmit = passwordOk && role !== null;
+    // Household profiles don't need a role selection — role is fixed at "household".
+    // Everyone else must pick child or parent.
+    const canSubmit = passwordOk && (profile.isHousehold || role !== null);
 
     const { submit, submitting, alert } = useFormSubmit<UpdateProfilePayload>(
         '/api/bruh/admin/profiles/update',
@@ -140,22 +142,26 @@ export default function BruhAdminProfilesEdit({ profile }: Props) {
                             </ul>
                         )}
                     </div>
-                    <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center', margin: '10px 0 20px' }}>
-                        <SegmentedControl<Role>
-                            ariaLabel={'Role'}
-                            value={role}
-                            onChange={setRole}
-                            options={[
-                                { value: 'child', label: 'Child' },
-                                { value: 'parent', label: 'Parent' },
-                            ]}
-                        />
-                        <Toggle checked={isAdmin} onChange={setIsAdmin} label={'Admin'} />
-                    </div>
-                    <div style={{ margin: '10px 0 20px' }}>
-                        <div style={{ marginBottom: '5px', fontSize: '0.9em' }}>Color</div>
-                        <ColorPicker value={color} onChange={setColor} />
-                    </div>
+                    {!profile.isHousehold && (
+                        <>
+                            <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center', margin: '10px 0 20px' }}>
+                                <SegmentedControl<Role>
+                                    ariaLabel={'Role'}
+                                    value={role}
+                                    onChange={setRole}
+                                    options={[
+                                        { value: 'child', label: 'Child' },
+                                        { value: 'parent', label: 'Parent' },
+                                    ]}
+                                />
+                                <Toggle checked={isAdmin} onChange={setIsAdmin} label={'Admin'} />
+                            </div>
+                            <div style={{ margin: '10px 0 20px' }}>
+                                <div style={{ marginBottom: '5px', fontSize: '0.9em' }}>Color</div>
+                                <ColorPicker value={color} onChange={setColor} />
+                            </div>
+                        </>
+                    )}
                     <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
                         <button
                             type={'button'}

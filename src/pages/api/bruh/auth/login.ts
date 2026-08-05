@@ -28,7 +28,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(401).json({ success: false, error: 'Invalid credentials' });
         }
 
-        const role: 'child' | 'parent' = profile.isParent ? 'parent' : 'child';
+        const role: 'child' | 'parent' | 'household' = profile.isHousehold
+            ? 'household'
+            : profile.isParent
+              ? 'parent'
+              : 'child';
         const token = await signSession({
             profilesId: profile.profilesId,
             username: profile.username ?? '',
