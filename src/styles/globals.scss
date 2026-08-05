@@ -681,6 +681,294 @@ body {
 		}
 	}
 
+	// Activity feed — day-grouped list of arrival/departure events.
+	.activity-filters {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 16px;
+
+		label {
+			display: inline-flex;
+			align-items: center;
+			font-size: 0.9em;
+		}
+	}
+	.activity-feed {
+		display: flex;
+		flex-direction: column;
+		gap: 24px;
+	}
+	.activity-day {
+		.activity-day-heading {
+			font-size: 1em;
+			opacity: 0.7;
+			margin-bottom: 8px;
+			text-transform: uppercase;
+			letter-spacing: 0.05em;
+		}
+		.activity-list {
+			list-style: none;
+			padding: 0;
+			margin: 0;
+			display: flex;
+			flex-direction: column;
+			gap: 4px;
+		}
+		.activity-item {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			padding: 8px 12px;
+			border-radius: 8px;
+			background: var(--color-surface);
+			border: 1px solid var(--color-border-subtle);
+
+			.profile-dot {
+				width: 12px;
+				height: 12px;
+				flex-shrink: 0;
+			}
+			.activity-text {
+				flex-grow: 1;
+				min-width: 0;
+			}
+			.activity-arrow {
+				font-weight: bold;
+				opacity: 0.7;
+			}
+			.activity-time {
+				font-size: 0.85em;
+				opacity: 0.6;
+				flex-shrink: 0;
+				white-space: nowrap;
+			}
+		}
+	}
+
+	// Known-location admin — fields on the left, map picker on the right.
+	// Stacks vertically on mobile so the map still gets breathing room.
+	.place-form-shell {
+		display: grid;
+		grid-template-columns: 320px 1fr;
+		gap: 20px;
+
+		@include mediaMax('tablet') {
+			grid-template-columns: 1fr;
+		}
+	}
+	.place-form-fields {
+		min-width: 0;
+	}
+	.place-form-map {
+		min-height: 400px;
+		border: 1px solid var(--color-border-subtle);
+		border-radius: 10px;
+		overflow: hidden;
+
+		@include mediaMax('tablet') {
+			min-height: 300px;
+		}
+	}
+
+	// Bruh Map history — header row with title on the left, date navigation on the right.
+	.history-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 12px;
+
+		.history-title {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+
+			.profile-dot {
+				width: 14px;
+				height: 14px;
+			}
+		}
+
+		.history-nav {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+
+			// Rein in the global .button padding for the tight date-nav row —
+			// arrows should read as arrows, not banner buttons.
+			.button {
+				padding: 6px 12px;
+			}
+
+			input[type='date'] {
+				padding: 6px 10px;
+				border: solid 1px var(--gray-200);
+				border-radius: 8px;
+				background: var(--color-surface);
+				color: inherit;
+				font-size: 0.95em;
+			}
+		}
+	}
+
+	// "+ Add known place" link inside Leaflet popups. Small chip-styled action
+	// so it reads as a button but doesn't overwhelm the popup's info section.
+	.popup-add-place {
+		display: inline-block;
+		font-size: 0.85em;
+		font-weight: bold;
+		color: var(--color-primary);
+		text-decoration: none;
+		padding: 4px 10px;
+		border: 1px solid var(--color-primary);
+		border-radius: 999px;
+
+		&:hover {
+			background-color: var(--color-primary);
+			color: var(--color-primary-fg);
+		}
+	}
+
+	// Known-location picker fills its parent (which sets the sized box).
+	.known-location-picker {
+		height: 100%;
+		width: 100%;
+		min-height: 400px;
+
+		.leaflet-container {
+			cursor: crosshair;
+		}
+	}
+
+	// Bruh Map — sidebar shell + per-profile row.
+	//
+	// Desktop: sidebar and map sit side-by-side; sidebar 280px, map fills the rest.
+	// Mobile: sidebar collapses to a horizontal chip strip above the map, so the
+	// map stays the hero and rows stay tappable.
+	.bruh-map-shell {
+		position: relative;
+		height: 100%;
+		width: 100%;
+		display: flex;
+		flex-direction: row;
+
+		@include mediaMax('tablet') {
+			flex-direction: column;
+		}
+	}
+
+	.bruh-map-stage {
+		position: relative;
+		flex-grow: 1;
+		min-width: 0;
+		min-height: 0;
+	}
+
+	.bruh-map-sidebar {
+		width: 280px;
+		flex-shrink: 0;
+		overflow-y: auto;
+		border-right: 1px solid var(--color-border-subtle);
+		background: var(--color-surface-alt);
+
+		@include mediaMax('tablet') {
+			width: 100%;
+			max-height: 100px;
+			overflow-x: auto;
+			overflow-y: hidden;
+			border-right: none;
+			border-bottom: 1px solid var(--color-border-subtle);
+		}
+
+		.bruh-map-sidebar-list {
+			list-style: none;
+			padding: 8px;
+			margin: 0;
+			display: flex;
+			flex-direction: column;
+			gap: 4px;
+
+			@include mediaMax('tablet') {
+				flex-direction: row;
+				gap: 8px;
+			}
+		}
+
+		.bruh-map-sidebar-row {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			padding: 8px 10px;
+			border-radius: 8px;
+			background: var(--color-surface);
+			transition: opacity 150ms ease;
+
+			@include mediaMax('tablet') {
+				// Chip-style pill on mobile — condense the row so it fits horizontally.
+				flex-shrink: 0;
+			}
+
+			&.is-hidden {
+				opacity: 0.45;
+			}
+
+			// Enlarge the dot slightly so it reads at a glance from across the room
+			// on the kiosk. Overrides the base .profile-dot size for this context.
+			.profile-dot {
+				width: 14px;
+				height: 14px;
+			}
+		}
+
+		.bruh-map-sidebar-name {
+			// Reset button styling so it reads as a clickable label.
+			background: none;
+			border: none;
+			color: inherit;
+			padding: 0;
+			font-weight: bold;
+			cursor: pointer;
+			text-align: left;
+			flex-grow: 1;
+			min-width: 0;
+			text-transform: none;
+
+			&:hover {
+				color: var(--color-primary);
+			}
+		}
+
+		.bruh-map-sidebar-eye {
+			// Reset button styling — icon-only.
+			background: none;
+			border: none;
+			color: inherit;
+			padding: 4px;
+			cursor: pointer;
+			display: inline-flex;
+			text-transform: none;
+
+			.material-symbols-outlined {
+				font-size: 1.1em;
+			}
+
+			&:hover {
+				color: var(--color-primary);
+			}
+		}
+
+		.bruh-map-sidebar-details {
+			font-size: 0.85em;
+			color: var(--color-link);
+			text-decoration: underline;
+			flex-shrink: 0;
+
+			&:hover {
+				color: var(--color-primary);
+			}
+		}
+	}
+
 	// Devices admin — device rows with per-row profile dropdown
 	.devices-table {
 		border-collapse: collapse;

@@ -11,6 +11,9 @@ export type NavItemType = {
     // Only render this item when the viewer is authenticated. Default: item always renders.
     // On a group, the flag cascades — children get hidden with the parent.
     requiresAuth?: boolean;
+    // Only render this item for admin users. Implies requiresAuth. Non-admin viewers
+    // (including household / child / parent) never see it.
+    requiresAdmin?: boolean;
     // If present, this item renders as a group header with a submenu of these children.
     // Desktop: hover shows the dropdown. Mobile: children are always shown inline.
     children?: NavItemType[];

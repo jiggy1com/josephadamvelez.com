@@ -66,6 +66,19 @@ export const bruhNavItems = [
         target: '/bruh/map',
         active: false,
     },
+    {
+        name: 'Activity',
+        target: '/bruh/activity',
+        active: false,
+    },
+    {
+        // Admin-only shortcut — only rendered for isAdmin sessions. Lets admins
+        // jump into the admin area from their phone without typing the URL.
+        name: 'Admin',
+        target: '/bruh/admin',
+        active: false,
+        requiresAdmin: true,
+    },
     // skylight calendar
     // {
     //     name: 'Rewards',
@@ -85,6 +98,15 @@ export const bruhNavItems = [
 ] as NavItemType[];
 
 export const bruhAdminNavItems = [
+    {
+        // Back-to-family shortcut. Any authenticated user can visit /bruh, so no
+        // requiresAdmin flag — an admin who ends up on /bruh/admin can hop back
+        // to the household view without editing the URL.
+        name: 'Bruh',
+        target: '/bruh',
+        active: false,
+        requiresAuth: true,
+    },
     {
         name: 'Profiles',
         target: '/bruh/admin/profiles/list',
@@ -155,6 +177,12 @@ export const bruhAdminNavItems = [
     {
         name: 'Lists',
         target: '/bruh/admin/lists/list',
+        active: false,
+        requiresAuth: true,
+    },
+    {
+        name: 'Places',
+        target: '/bruh/admin/places/list',
         active: false,
         requiresAuth: true,
     },

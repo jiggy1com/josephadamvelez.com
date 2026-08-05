@@ -1,5 +1,5 @@
 import { BruhAdminDashboard } from '@/components/bruh/admin/BruhAdminDashboard';
-import { BruhAdminLogin } from '@/components/bruh/admin/BruhAdminLogin';
+import { BruhLogin } from '@/components/bruh/BruhLogin';
 import { useSession } from '@/hooks/useSession';
 
 export default function BruhAdminIndex() {
@@ -9,8 +9,11 @@ export default function BruhAdminIndex() {
         return null;
     }
 
-    if (!user) {
-        return <BruhAdminLogin onSignedIn={() => void refresh()} />;
+    // Any authenticated user reaches this page (middleware only requires isAdmin
+    // for the /bruh/admin/* subroutes, not the root). Non-admin viewers get
+    // shown the sign-in form so they can retry with an admin credential.
+    if (!user || !user.isAdmin) {
+        return <BruhLogin onSignedIn={() => void refresh()} defaultNext={'/bruh/admin'} />;
     }
 
     return <BruhAdminDashboard />;
