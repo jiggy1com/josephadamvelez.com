@@ -745,12 +745,18 @@ body {
 	.activity-filters {
 		display: flex;
 		flex-wrap: wrap;
+		align-items: center;
 		gap: 16px;
 
 		label {
 			display: inline-flex;
 			align-items: center;
 			font-size: 0.9em;
+		}
+		.activity-sort-toggle {
+			margin-left: auto;
+			font-size: 0.8em;
+			padding: 6px 14px;
 		}
 	}
 	.activity-feed {

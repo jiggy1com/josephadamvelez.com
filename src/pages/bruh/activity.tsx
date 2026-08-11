@@ -14,9 +14,15 @@ function fmtTime(iso: string): string {
     return d.toLocaleString();
 }
 
+type SortDir = 'asc' | 'desc';
+
 // Group events by local-date bucket so the feed reads as day-separated
-// sections rather than a wall of timestamps.
-function bucketByDay(rows: LocationEventFeedRow[]): { date: string; rows: LocationEventFeedRow[] }[] {
+// sections rather than a wall of timestamps. Days stay newest-first (the
+// order the API returns); sortDir only flips the order within each day.
+function bucketByDay(
+    rows: LocationEventFeedRow[],
+    sortDir: SortDir,
+): { date: string; rows: LocationEventFeedRow[] }[] {
     const groups = new Map<string, LocationEventFeedRow[]>();
     for (const r of rows) {
         const d = new Date(r.occurredAt);
@@ -32,7 +38,10 @@ function bucketByDay(rows: LocationEventFeedRow[]): { date: string; rows: Locati
         list.push(r);
         groups.set(key, list);
     }
-    return Array.from(groups, ([date, rowsForDay]) => ({ date, rows: rowsForDay }));
+    return Array.from(groups, ([date, rowsForDay]) => ({
+        date,
+        rows: sortDir === 'asc' ? [...rowsForDay].reverse() : rowsForDay,
+    }));
 }
 
 export default function BruhActivity() {
@@ -45,8 +54,9 @@ export default function BruhActivity() {
     const [places, setPlaces] = useState<KnownLocation[]>([]);
     const [filterProfileId, setFilterProfileId] = useState<string>('');
     const [filterPlaceId, setFilterPlaceId] = useState<string>('');
+    const [sortDir, setSortDir] = useState<SortDir>('asc');
 
-    const groups = useMemo(() => bucketByDay(rows), [rows]);
+    const groups = useMemo(() => bucketByDay(rows, sortDir), [rows, sortDir]);
 
     // Fetch dropdown options once. Both endpoints are session-gated; anyone
     // signed in can read them.
@@ -127,6 +137,19 @@ export default function BruhActivity() {
                             ))}
                         </select>
                     </label>
+                    <button
+                        type={'button'}
+                        className={'button button-secondary activity-sort-toggle'}
+                        onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
+                        title={'Flip within-day order'}
+                        aria-label={
+                            sortDir === 'asc'
+                                ? 'Within day: oldest first'
+                                : 'Within day: newest first'
+                        }>
+                        <span aria-hidden={'true'}>{sortDir === 'asc' ? '↑' : '↓'}</span>{' '}
+                        {sortDir === 'asc' ? 'Oldest first' : 'Newest first'}
+                    </button>
                 </div>
             </Section>
             <Section id={'bruh-activity-feed'} className={'admin-section'} removeArticle={true}>
