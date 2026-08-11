@@ -8,15 +8,38 @@ import type {
 } from '@/utils/adminQueries';
 import { resolveProfileColor } from '@/constants/profileColors';
 
+// How many days of activity to show. Bump this to widen the window; the server
+// caps the row count at 500 so a very busy window may still truncate — raise
+// the cap in qryGetLocationEventsFeed if that becomes a problem.
+const DAYS_TO_SHOW = 7;
+
 function fmtTime(iso: string): string {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return iso;
     return d.toLocaleString();
 }
 
+// Local-date string N days ago in YYYY-MM-DD form, matching the API's
+// `since` filter format. Uses local time so "7 days ago" is intuitive
+// to the person looking at the page rather than a UTC boundary.
+function daysAgoLocalDate(days: number): string {
+    const d = new Date();
+    d.setDate(d.getDate() - days);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+}
+
+type SortDir = 'asc' | 'desc';
+
 // Group events by local-date bucket so the feed reads as day-separated
-// sections rather than a wall of timestamps.
-function bucketByDay(rows: LocationEventFeedRow[]): { date: string; rows: LocationEventFeedRow[] }[] {
+// sections rather than a wall of timestamps. Days stay newest-first (the
+// order the API returns); sortDir only flips the order within each day.
+function bucketByDay(
+    rows: LocationEventFeedRow[],
+    sortDir: SortDir,
+): { date: string; rows: LocationEventFeedRow[] }[] {
     const groups = new Map<string, LocationEventFeedRow[]>();
     for (const r of rows) {
         const d = new Date(r.occurredAt);
@@ -32,7 +55,10 @@ function bucketByDay(rows: LocationEventFeedRow[]): { date: string; rows: Locati
         list.push(r);
         groups.set(key, list);
     }
-    return Array.from(groups, ([date, rowsForDay]) => ({ date, rows: rowsForDay }));
+    return Array.from(groups, ([date, rowsForDay]) => ({
+        date,
+        rows: sortDir === 'asc' ? [...rowsForDay].reverse() : rowsForDay,
+    }));
 }
 
 export default function BruhActivity() {
@@ -45,8 +71,9 @@ export default function BruhActivity() {
     const [places, setPlaces] = useState<KnownLocation[]>([]);
     const [filterProfileId, setFilterProfileId] = useState<string>('');
     const [filterPlaceId, setFilterPlaceId] = useState<string>('');
+    const [sortDir, setSortDir] = useState<SortDir>('asc');
 
-    const groups = useMemo(() => bucketByDay(rows), [rows]);
+    const groups = useMemo(() => bucketByDay(rows, sortDir), [rows, sortDir]);
 
     // Fetch dropdown options once. Both endpoints are session-gated; anyone
     // signed in can read them.
@@ -71,6 +98,8 @@ export default function BruhActivity() {
         const params = new URLSearchParams();
         if (filterProfileId) params.set('profilesId', filterProfileId);
         if (filterPlaceId) params.set('knownLocationsId', filterPlaceId);
+        params.set('since', daysAgoLocalDate(DAYS_TO_SHOW));
+        params.set('limit', '500');
         void (async () => {
             try {
                 const r = await fetch(`/api/bruh/activity?${params.toString()}`, {
@@ -127,6 +156,19 @@ export default function BruhActivity() {
                             ))}
                         </select>
                     </label>
+                    <button
+                        type={'button'}
+                        className={'button button-secondary activity-sort-toggle'}
+                        onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
+                        title={'Flip within-day order'}
+                        aria-label={
+                            sortDir === 'asc'
+                                ? 'Within day: oldest first'
+                                : 'Within day: newest first'
+                        }>
+                        <span aria-hidden={'true'}>{sortDir === 'asc' ? '↑' : '↓'}</span>{' '}
+                        {sortDir === 'asc' ? 'Oldest first' : 'Newest first'}
+                    </button>
                 </div>
             </Section>
             <Section id={'bruh-activity-feed'} className={'admin-section'} removeArticle={true}>
