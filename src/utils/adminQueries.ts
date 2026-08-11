@@ -1057,6 +1057,88 @@ export async function qryInsertLocationEvent(input: {
     `;
 }
 
+export type BackfillResult = {
+    arrivals: number;
+    departures: number;
+    devicesScanned: number;
+    pingsScanned: number;
+};
+
+// Replays historical pings for one known location and inserts synthetic
+// arrival/departure events. Matches the live semantics in
+// api/bruh/devices/location-add.ts: an "inside" first ping (no prior ping)
+// counts as an arrival, then transitions in/out of the radius emit events.
+// Call sites:
+//   - Auto-invoked after CREATE (replaceExisting=false; the new id has no events yet)
+//   - Manual "Backfill" button on the edit page (replaceExisting=true; wipes
+//     this place's existing events first so a corrected radius/pin re-derives cleanly)
+export async function qryBackfillLocationEventsForPlace(
+    knownLocationsId: number,
+    opts: { replaceExisting: boolean },
+): Promise<BackfillResult> {
+    const place = await qryGetKnownLocationById(knownLocationsId);
+    if (!place) throw new Error(`known_location ${knownLocationsId} not found`);
+
+    if (opts.replaceExisting) {
+        await sql`
+            delete from location_events
+            where known_locations_id = ${knownLocationsId}
+        `;
+    }
+
+    const deviceRows = (await sql`
+        select distinct device_id as "deviceId"
+        from locations
+        where latitude is not null
+          and longitude is not null
+    `) as { deviceId: string }[];
+
+    let arrivals = 0;
+    let departures = 0;
+    let pingsScanned = 0;
+
+    for (const { deviceId } of deviceRows) {
+        const pings = (await sql`
+            select latitude, longitude, received_at as "receivedAt"
+            from locations
+            where device_id = ${deviceId}
+              and latitude is not null
+              and longitude is not null
+            order by received_at asc
+        `) as { latitude: number; longitude: number; receivedAt: string }[];
+
+        let wasInside = false;
+        for (const p of pings) {
+            const isInside =
+                haversineMeters(p.latitude, p.longitude, place.latitude, place.longitude) <=
+                place.radiusM;
+            if (!wasInside && isInside) {
+                await sql`
+                    insert into location_events
+                        (devices_id, known_locations_id, event_type, latitude, longitude, occurred_at)
+                    values
+                        (${deviceId}, ${knownLocationsId}, 'arrival',
+                         ${p.latitude}, ${p.longitude}, ${p.receivedAt})
+                `;
+                arrivals++;
+            } else if (wasInside && !isInside) {
+                await sql`
+                    insert into location_events
+                        (devices_id, known_locations_id, event_type, latitude, longitude, occurred_at)
+                    values
+                        (${deviceId}, ${knownLocationsId}, 'departure',
+                         ${p.latitude}, ${p.longitude}, ${p.receivedAt})
+                `;
+                departures++;
+            }
+            wasInside = isInside;
+        }
+        pingsScanned += pings.length;
+    }
+
+    return { arrivals, departures, devicesScanned: deviceRows.length, pingsScanned };
+}
+
 export type LocationEventFilter = {
     profilesId?: number;
     knownLocationsId?: number;

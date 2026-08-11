@@ -1,5 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { qryAddKnownLocation, type KnownLocationInput } from '@/utils/adminQueries';
+import {
+    qryAddKnownLocation,
+    qryBackfillLocationEventsForPlace,
+    type KnownLocationInput,
+} from '@/utils/adminQueries';
 import { handleServerError } from '@/utils/apiErrors';
 import { parseKnownLocationBody } from '@/utils/knownLocationsValidation';
 
@@ -15,8 +19,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const input: KnownLocationInput = parsed.input;
 
     try {
-        const data = await qryAddKnownLocation(input);
-        return res.status(200).json({ success: true, data });
+        const data = (await qryAddKnownLocation(input)) as {
+            knownLocationsId: number;
+            name: string;
+        }[];
+
+        // Silent replay of historical pings so the new place gets a full activity
+        // feed instead of only picking up future arrivals/departures.
+        // replaceExisting: false — the id is brand new, no events exist yet.
+        const backfill = data[0]
+            ? await qryBackfillLocationEventsForPlace(data[0].knownLocationsId, {
+                  replaceExisting: false,
+              })
+            : null;
+
+        return res.status(200).json({ success: true, data, backfill });
     } catch (e) {
         handleServerError(res, 'known-locations/add', e);
     }

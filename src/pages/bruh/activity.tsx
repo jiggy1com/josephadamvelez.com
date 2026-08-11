@@ -8,10 +8,27 @@ import type {
 } from '@/utils/adminQueries';
 import { resolveProfileColor } from '@/constants/profileColors';
 
+// How many days of activity to show. Bump this to widen the window; the server
+// caps the row count at 500 so a very busy window may still truncate — raise
+// the cap in qryGetLocationEventsFeed if that becomes a problem.
+const DAYS_TO_SHOW = 7;
+
 function fmtTime(iso: string): string {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return iso;
     return d.toLocaleString();
+}
+
+// Local-date string N days ago in YYYY-MM-DD form, matching the API's
+// `since` filter format. Uses local time so "7 days ago" is intuitive
+// to the person looking at the page rather than a UTC boundary.
+function daysAgoLocalDate(days: number): string {
+    const d = new Date();
+    d.setDate(d.getDate() - days);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
 }
 
 type SortDir = 'asc' | 'desc';
@@ -81,6 +98,8 @@ export default function BruhActivity() {
         const params = new URLSearchParams();
         if (filterProfileId) params.set('profilesId', filterProfileId);
         if (filterPlaceId) params.set('knownLocationsId', filterPlaceId);
+        params.set('since', daysAgoLocalDate(DAYS_TO_SHOW));
+        params.set('limit', '500');
         void (async () => {
             try {
                 const r = await fetch(`/api/bruh/activity?${params.toString()}`, {

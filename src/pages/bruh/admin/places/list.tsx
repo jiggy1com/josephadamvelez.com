@@ -123,8 +123,13 @@ export default function BruhAdminPlacesList() {
                 <ConfirmModal
                     onConfirm={() => void confirmDelete()}
                     onCancel={() => setPendingDelete(null)}
-                    confirmLabel={'Confirm'}>
+                    confirmLabel={'Delete'}>
                     <p>Delete place &quot;{pendingDelete.name}&quot;?</p>
+                    <p style={{ fontSize: '0.9em', opacity: 0.8, marginTop: 10 }}>
+                        Past arrivals and departures for this place will lose their name
+                        in the activity feed and map history — the events remain, but
+                        &quot;{pendingDelete.name}&quot; will no longer resolve.
+                    </p>
                 </ConfirmModal>
             )}
         </>

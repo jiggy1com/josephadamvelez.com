@@ -1,5 +1,6 @@
 import { GetServerSideProps } from 'next';
 import { BruhAdminPlaceForm } from '@/components/bruh/admin/BruhAdminPlaceForm';
+import { BruhAdminPlaceBackfill } from '@/components/bruh/admin/BruhAdminPlaceBackfill';
 import { qryGetKnownLocationById } from '@/utils/adminQueries';
 import type { KnownLocation } from '@/utils/adminQueries';
 
@@ -15,11 +16,14 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
 
 export default function BruhAdminPlacesEdit({ initial }: Props) {
     return (
-        <BruhAdminPlaceForm
-            initial={initial}
-            endpoint={'/api/bruh/admin/known-locations/update'}
-            heading={'Edit place'}
-            successMessage={'Place updated'}
-        />
+        <>
+            <BruhAdminPlaceForm
+                initial={initial}
+                endpoint={'/api/bruh/admin/known-locations/update'}
+                heading={'Edit place'}
+                successMessage={'Place updated'}
+            />
+            <BruhAdminPlaceBackfill place={initial} />
+        </>
     );
 }
