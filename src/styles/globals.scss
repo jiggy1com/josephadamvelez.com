@@ -554,6 +554,14 @@ body {
 				text-decoration: line-through;
 			}
 		}
+
+		&.editing {
+			cursor: default;
+
+			&:hover {
+				background-color: transparent;
+			}
+		}
 	}
 
 	.list-item-check {
@@ -576,6 +584,58 @@ body {
 	.list-item-name {
 		flex-grow: 1;
 		font-size: 1.1em;
+	}
+
+	.list-item-actions {
+		display: flex;
+		align-items: center;
+		gap: 5px;
+		flex-shrink: 0;
+	}
+
+	.list-item-action {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 40px;
+		height: 40px;
+		border: none;
+		background: transparent;
+		border-radius: 6px;
+		cursor: pointer;
+		color: inherit;
+		opacity: 0.6;
+		transition: opacity 100ms ease, background-color 100ms ease;
+
+		&:hover {
+			opacity: 1;
+			background-color: var(--color-surface-hover);
+		}
+
+		&.danger:hover {
+			color: var(--color-error);
+		}
+
+		.material-symbols-outlined {
+			font-size: 1.3em;
+		}
+	}
+
+	.list-item-edit {
+		flex-grow: 1;
+		display: flex;
+		gap: 10px;
+		align-items: center;
+		flex-wrap: wrap;
+	}
+
+	.list-item-edit-input {
+		flex-grow: 1;
+		min-width: 0;
+		padding: 10px 15px;
+		font-size: 1.1em;
+		border: solid 1px var(--gray-200);
+		border-radius: 8px;
 	}
 
 	.list-empty {

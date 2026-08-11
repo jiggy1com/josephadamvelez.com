@@ -786,6 +786,24 @@ export async function qryClearCheckedItems(listsId: number) {
     `;
 }
 
+export async function qryRenameListItem(listItemsId: number, name: string) {
+    return sql`
+        update list_items
+        set name = ${name}
+        where list_items_id = ${listItemsId}
+        returning list_items_id as "listItemsId",
+                  name
+    `;
+}
+
+export async function qryDeleteListItem(listItemsId: number) {
+    return sql`
+        delete
+        from list_items
+        where list_items_id = ${listItemsId}
+    `;
+}
+
 // DEVICE LOCATIONS
 export type DeviceLocationRow = {
     deviceId: string;

@@ -1,9 +1,10 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, MouseEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { Section } from '@/components/section/Section';
 import { Alert, AlertType } from '@/components/alert/Alert';
 import { Flex } from '@/components/flexbox/Flex';
 import { FlexItem } from '@/components/flexbox/FlexItem';
+import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import type { ListItem, ListRow } from '@/utils/adminQueries';
 
 export default function BruhListDetail() {
@@ -14,6 +15,9 @@ export default function BruhListDetail() {
     const [newItem, setNewItem] = useState('');
     const [alert, setAlert] = useState<AlertType>({ success: false, message: '' });
     const [busy, setBusy] = useState(false);
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const [editingName, setEditingName] = useState('');
+    const [pendingDelete, setPendingDelete] = useState<ListItem | null>(null);
 
     const loadItems = async () => {
         if (!listsId) return;
@@ -66,6 +70,58 @@ export default function BruhListDetail() {
             body: JSON.stringify({ listItemsId: item.listItemsId, checked: !item.checked }),
         });
         await loadItems(); // resync canonical order
+    };
+
+    const startEdit = (e: MouseEvent, item: ListItem) => {
+        e.stopPropagation();
+        setEditingId(item.listItemsId);
+        setEditingName(item.name);
+    };
+
+    const cancelEdit = () => {
+        setEditingId(null);
+        setEditingName('');
+    };
+
+    const saveEdit = async (e: FormEvent<HTMLFormElement>, item: ListItem) => {
+        e.preventDefault();
+        const name = editingName.trim();
+        if (!name || name === item.name) {
+            cancelEdit();
+            return;
+        }
+        const res = await fetch('/api/bruh/lists/items/rename', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ listItemsId: item.listItemsId, name }),
+        });
+        const json = await res.json();
+        if (!json.success) {
+            setAlert({ success: false, message: json.error ?? 'Failed to rename item' });
+        }
+        cancelEdit();
+        await loadItems();
+    };
+
+    const requestDelete = (e: MouseEvent, item: ListItem) => {
+        e.stopPropagation();
+        setPendingDelete(item);
+    };
+
+    const confirmDelete = async () => {
+        if (!pendingDelete) return;
+        const target = pendingDelete;
+        setPendingDelete(null);
+        const res = await fetch('/api/bruh/lists/items/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ listItemsId: target.listItemsId }),
+        });
+        const json = await res.json();
+        if (!json.success) {
+            setAlert({ success: false, message: json.error ?? 'Failed to delete item' });
+        }
+        await loadItems();
     };
 
     const clearChecked = async () => {
@@ -139,22 +195,87 @@ export default function BruhListDetail() {
                 </form>
 
                 <ul className={'list-items'}>
-                    {items.map((item) => (
-                        <li
-                            key={item.listItemsId}
-                            className={`list-item ${item.checked ? 'checked' : ''}`}
-                            onClick={() => void toggleItem(item)}>
-                            <span className={'list-item-check'} aria-hidden={true}>
-                                {item.checked ? '✓' : ''}
-                            </span>
-                            <span className={'list-item-name'}>{item.name}</span>
-                        </li>
-                    ))}
+                    {items.map((item) => {
+                        const isEditing = editingId === item.listItemsId;
+                        return (
+                            <li
+                                key={item.listItemsId}
+                                className={`list-item ${item.checked ? 'checked' : ''} ${isEditing ? 'editing' : ''}`}
+                                onClick={() => {
+                                    if (!isEditing) void toggleItem(item);
+                                }}>
+                                <span className={'list-item-check'} aria-hidden={true}>
+                                    {item.checked ? '✓' : ''}
+                                </span>
+                                {isEditing ? (
+                                    <form
+                                        className={'list-item-edit'}
+                                        onSubmit={(e) => void saveEdit(e, item)}
+                                        onClick={(e) => e.stopPropagation()}>
+                                        <input
+                                            type={'text'}
+                                            value={editingName}
+                                            onChange={(e) => setEditingName(e.target.value)}
+                                            autoFocus={true}
+                                            autoComplete={'off'}
+                                            className={'list-item-edit-input'}
+                                        />
+                                        <button type={'submit'} className={'button'}>
+                                            Save
+                                        </button>
+                                        <button
+                                            type={'button'}
+                                            className={'button button-secondary'}
+                                            onClick={cancelEdit}>
+                                            Cancel
+                                        </button>
+                                    </form>
+                                ) : (
+                                    <>
+                                        <span className={'list-item-name'}>{item.name}</span>
+                                        <span className={'list-item-actions'}>
+                                            <button
+                                                type={'button'}
+                                                className={'list-item-action'}
+                                                aria-label={'Edit item'}
+                                                onClick={(e) => startEdit(e, item)}>
+                                                <span className={'material-symbols-outlined'}>
+                                                    edit
+                                                </span>
+                                            </button>
+                                            <button
+                                                type={'button'}
+                                                className={'list-item-action danger'}
+                                                aria-label={'Delete item'}
+                                                onClick={(e) => requestDelete(e, item)}>
+                                                <span className={'material-symbols-outlined'}>
+                                                    delete
+                                                </span>
+                                            </button>
+                                        </span>
+                                    </>
+                                )}
+                            </li>
+                        );
+                    })}
                     {items.length === 0 && (
                         <li className={'list-empty'}>Nothing here yet. Add something above.</li>
                     )}
                 </ul>
             </Section>
+
+            {pendingDelete && (
+                <ConfirmModal
+                    onConfirm={() => void confirmDelete()}
+                    onCancel={() => setPendingDelete(null)}
+                    confirmLabel={'Delete'}>
+                    <Flex>
+                        <FlexItem>
+                            <p>Delete &quot;{pendingDelete.name}&quot;?</p>
+                        </FlexItem>
+                    </Flex>
+                </ConfirmModal>
+            )}
         </>
     );
 }
