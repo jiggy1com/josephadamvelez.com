@@ -905,15 +905,21 @@ export async function qryAssignDeviceToProfile(
 }
 
 // DEVICE HISTORY — all pings for a single device on a specific local date.
-// Ordered by received_at (server truth) since device_timestamp can be stale
-// due to cached CoreLocation fixes.
+// Ordered by capture time (`device_timestamp`), falling back to `received_at`
+// only when the client omitted a timestamp. Using received_at here made
+// queued/late-delivered pings show up under "now" instead of when the phone
+// actually took the fix — misleading on the map and its popups. Cached
+// CoreLocation fixes are already dropped client-side (LocationService's
+// 30-second staleness guard) so device_timestamp is trustworthy in practice.
 
 export type DeviceHistoryPing = {
     latitude: number;
     longitude: number;
-    // Server-received time (source of truth for ordering + filtering).
+    // Server-received time — kept in the payload for diagnostics, but the UI
+    // should prefer deviceTimestamp for anything user-facing.
     receivedAt: string;
-    // Device-reported capture time (can be stale; still useful to show in the popup).
+    // Device-reported capture time. Preferred for ordering, day-bucketing, and
+    // popup labels since it reflects when the event actually happened.
     deviceTimestamp: string | null;
     accuracy: number | null;
     battery: number | null;
@@ -968,8 +974,8 @@ export async function qryGetDeviceHistory(
                l.is_charging        as charging
         from locations l
         where l.device_id = ${deviceId}
-          and (l.received_at at time zone ${HISTORY_TZ})::date = ${date}::date
-        order by l.received_at asc
+          and (coalesce(l.device_timestamp, l.received_at) at time zone ${HISTORY_TZ})::date = ${date}::date
+        order by coalesce(l.device_timestamp, l.received_at) asc
     `) as Omit<DeviceHistoryPing, 'placeName'>[];
 
     // Same trick as the current-location query — enrich in-process against the

@@ -106,7 +106,7 @@ export function BruhMapHistoryView({ data }: Props) {
                                         </div>
                                     )}
                                     <div style={{ fontSize: '0.9em', opacity: 0.8 }}>
-                                        {formatTime(ping.receivedAt)}
+                                        {formatTime(ping.deviceTimestamp ?? ping.receivedAt)}
                                     </div>
                                     {ping.accuracy !== null && (
                                         <div style={{ fontSize: '0.8em', opacity: 0.6 }}>
