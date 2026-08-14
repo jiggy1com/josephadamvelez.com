@@ -25,6 +25,28 @@ function fmtInt(n: number | null | undefined): string {
     return Number(n).toLocaleString();
 }
 
+function fmtPct(x: number | null | undefined): string {
+    if (x === null || x === undefined) return '—';
+    return `${Math.round(x * 100)}%`;
+}
+
+function fmtInterval(s: number | null | undefined): string {
+    if (s === null || s === undefined) return '—';
+    if (s < 60) return `${Math.round(s)}s`;
+    return `${(s / 60).toFixed(1)}m`;
+}
+
+// Battery start/end are point-in-time readings while off charger — if the phone
+// spent most of the window on a charger, or off-charger readings straddled a
+// plug-in, the delta is noise. So we only render drain when we have both bounds
+// AND end ≤ start (i.e., it actually dropped).
+function fmtDrain(start: number | null, end: number | null): string {
+    if (start === null || end === null) return '—';
+    const drop = start - end;
+    if (drop <= 0) return '—';
+    return `${start}→${end}% (−${drop}%)`;
+}
+
 export default function BruhAdminDevicesInsights() {
     const [payload, setPayload] = useState<InsightsPayload | null>(null);
     const [alert, setAlert] = useState<AlertType>({ success: false, message: '' });
@@ -95,10 +117,10 @@ export default function BruhAdminDevicesInsights() {
                                 <thead>
                                     <tr>
                                         <th rowSpan={2}>Device</th>
-                                        <th colSpan={6} className={'group-24h'}>
+                                        <th colSpan={9} className={'group-24h'}>
                                             Last 24h
                                         </th>
-                                        <th colSpan={6} className={'group-7d'}>
+                                        <th colSpan={9} className={'group-7d'}>
                                             Last 7 days
                                         </th>
                                         <th rowSpan={2} title={'pings24h × 30'}>
@@ -116,18 +138,30 @@ export default function BruhAdminDevicesInsights() {
                                         <th className={'group-24h'} title={'Median horizontal accuracy'}>
                                             Acc (m)
                                         </th>
+                                        <th className={'group-24h'} title={'Median seconds between consecutive pings'}>
+                                            Med. int.
+                                        </th>
+                                        <th className={'group-24h'} title={'p95 seconds between consecutive pings — catches OS throttling'}>
+                                            p95 int.
+                                        </th>
                                         <th className={'group-24h'} title={'Longest gap between pings'}>
                                             Max gap
                                         </th>
-                                        <th className={'group-24h'} title={'Min battery seen off charger'}>
-                                            Min bat.
+                                        <th className={'group-24h'} title={'First → last battery reading off charger (drop)'}>
+                                            Drain (off)
+                                        </th>
+                                        <th className={'group-24h'} title={'Share of pings while device was charging'}>
+                                            % chg.
                                         </th>
                                         <th className={'group-7d'}>Pings</th>
                                         <th className={'group-7d'}>Places (~10m)</th>
                                         <th className={'group-7d'}>Places (~100m)</th>
                                         <th className={'group-7d'}>Acc (m)</th>
+                                        <th className={'group-7d'}>Med. int.</th>
+                                        <th className={'group-7d'}>p95 int.</th>
                                         <th className={'group-7d'}>Max gap</th>
-                                        <th className={'group-7d'}>Min bat.</th>
+                                        <th className={'group-7d'}>Drain (off)</th>
+                                        <th className={'group-7d'}>% chg.</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -156,22 +190,20 @@ export default function BruhAdminDevicesInsights() {
                                                 <td>{fmtInt(d.period24h.distinctCells10m)}</td>
                                                 <td>{fmtInt(d.period24h.distinctCells100m)}</td>
                                                 <td>{fmt(d.period24h.medianAccuracyM)}</td>
+                                                <td>{fmtInterval(d.period24h.medianIntervalSeconds)}</td>
+                                                <td>{fmtInterval(d.period24h.p95IntervalSeconds)}</td>
                                                 <td>{fmtGap(d.period24h.maxGapSeconds)}</td>
-                                                <td>
-                                                    {d.period24h.minBatteryOffCharger !== null
-                                                        ? `${d.period24h.minBatteryOffCharger}%`
-                                                        : '—'}
-                                                </td>
+                                                <td>{fmtDrain(d.period24h.batteryStartOffCharger, d.period24h.batteryEndOffCharger)}</td>
+                                                <td>{fmtPct(d.period24h.pctPingsCharging)}</td>
                                                 <td>{fmtInt(d.period7d.pings)}</td>
                                                 <td>{fmtInt(d.period7d.distinctCells10m)}</td>
                                                 <td>{fmtInt(d.period7d.distinctCells100m)}</td>
                                                 <td>{fmt(d.period7d.medianAccuracyM)}</td>
+                                                <td>{fmtInterval(d.period7d.medianIntervalSeconds)}</td>
+                                                <td>{fmtInterval(d.period7d.p95IntervalSeconds)}</td>
                                                 <td>{fmtGap(d.period7d.maxGapSeconds)}</td>
-                                                <td>
-                                                    {d.period7d.minBatteryOffCharger !== null
-                                                        ? `${d.period7d.minBatteryOffCharger}%`
-                                                        : '—'}
-                                                </td>
+                                                <td>{fmtDrain(d.period7d.batteryStartOffCharger, d.period7d.batteryEndOffCharger)}</td>
+                                                <td>{fmtPct(d.period7d.pctPingsCharging)}</td>
                                                 <td>{fmtInt(d.projectedRowsPerMonth)}</td>
                                             </tr>
                                         );

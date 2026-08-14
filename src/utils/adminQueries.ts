@@ -1327,6 +1327,25 @@ export type InsightsPeriod = {
     minBatteryOffCharger: number | null;
     // Max seconds between consecutive pings — big gap = background mode gave up
     maxGapSeconds: number | null;
+    // First and last battery reading while OFF charger in the window, in that order.
+    // Difference gives an honest drain reading; single-reading windows collapse both
+    // to the same value.
+    batteryStartOffCharger: number | null;
+    batteryEndOffCharger: number | null;
+    // Share of pings recorded while the device was on a charger (0..1).
+    // High values mean the "min battery" reading below is optimistic — the device
+    // was mostly plugged in.
+    pctPingsCharging: number | null;
+    // Median and p95 seconds between consecutive pings — cadence sanity check.
+    // Median should approximate the client's target interval; p95 catches OS
+    // throttling.
+    medianIntervalSeconds: number | null;
+    p95IntervalSeconds: number | null;
+    // Average speed while moving (speed > 1 m/s), in m/s. Null if never moved.
+    avgSpeedMovingMps: number | null;
+    // Share of pings with speed ≤ 1 m/s (0..1). High values on a moving device
+    // usually means the sensor never got a fresh velocity reading.
+    pctStationary: number | null;
 };
 
 export type InsightsHourBucket = {
@@ -1373,12 +1392,26 @@ type SummaryRow = {
     medianAccuracy24h: number | null;
     minBatteryOff24h: number | null;
     maxGapSeconds24h: number | null;
+    batteryStartOff24h: number | null;
+    batteryEndOff24h: number | null;
+    pctCharging24h: number | null;
+    medianInterval24h: number | null;
+    p95Interval24h: number | null;
+    avgSpeedMoving24h: number | null;
+    pctStationary24h: number | null;
     pings7d: number;
     distinctCells10m7d: number;
     distinctCells100m7d: number;
     medianAccuracy7d: number | null;
     minBatteryOff7d: number | null;
     maxGapSeconds7d: number | null;
+    batteryStartOff7d: number | null;
+    batteryEndOff7d: number | null;
+    pctCharging7d: number | null;
+    medianInterval7d: number | null;
+    p95Interval7d: number | null;
+    avgSpeedMoving7d: number | null;
+    pctStationary7d: number | null;
 };
 
 type HourlyRow = {
@@ -1421,6 +1454,22 @@ export async function qryGetLocationInsights(): Promise<InsightsPayload> {
                    filter (where r.received_at > now() - interval '24 hours' and not r.is_charging and r.battery_level >= 0) as "minBatteryOff24h",
                max(r.gap_seconds)
                    filter (where r.received_at > now() - interval '24 hours')                                          as "maxGapSeconds24h",
+               (array_agg(r.battery_level order by r.received_at asc)
+                   filter (where r.received_at > now() - interval '24 hours' and not r.is_charging and r.battery_level >= 0)
+               )[1]                                                                                                    as "batteryStartOff24h",
+               (array_agg(r.battery_level order by r.received_at desc)
+                   filter (where r.received_at > now() - interval '24 hours' and not r.is_charging and r.battery_level >= 0)
+               )[1]                                                                                                    as "batteryEndOff24h",
+               avg(case when r.is_charging then 1.0 else 0.0 end)
+                   filter (where r.received_at > now() - interval '24 hours')                                          as "pctCharging24h",
+               percentile_cont(0.5) within group (order by r.gap_seconds)
+                   filter (where r.received_at > now() - interval '24 hours' and r.gap_seconds > 0)                    as "medianInterval24h",
+               percentile_cont(0.95) within group (order by r.gap_seconds)
+                   filter (where r.received_at > now() - interval '24 hours' and r.gap_seconds > 0)                    as "p95Interval24h",
+               avg(r.speed)
+                   filter (where r.received_at > now() - interval '24 hours' and r.speed > 1)                          as "avgSpeedMoving24h",
+               avg(case when coalesce(r.speed, 0) <= 1 then 1.0 else 0.0 end)
+                   filter (where r.received_at > now() - interval '24 hours')                                          as "pctStationary24h",
                count(*)                                                                                                as "pings7d",
                count(distinct (round(r.latitude::numeric, 4) || ',' || round(r.longitude::numeric, 4)))                as "distinctCells10m7d",
                count(distinct (round(r.latitude::numeric, 3) || ',' || round(r.longitude::numeric, 3)))                as "distinctCells100m7d",
@@ -1428,7 +1477,20 @@ export async function qryGetLocationInsights(): Promise<InsightsPayload> {
                    filter (where r.horizontal_accuracy > 0)                                                             as "medianAccuracy7d",
                min(r.battery_level)
                    filter (where not r.is_charging and r.battery_level >= 0)                                            as "minBatteryOff7d",
-               max(r.gap_seconds)                                                                                       as "maxGapSeconds7d"
+               max(r.gap_seconds)                                                                                       as "maxGapSeconds7d",
+               (array_agg(r.battery_level order by r.received_at asc)
+                   filter (where not r.is_charging and r.battery_level >= 0)
+               )[1]                                                                                                     as "batteryStartOff7d",
+               (array_agg(r.battery_level order by r.received_at desc)
+                   filter (where not r.is_charging and r.battery_level >= 0)
+               )[1]                                                                                                     as "batteryEndOff7d",
+               avg(case when r.is_charging then 1.0 else 0.0 end)                                                       as "pctCharging7d",
+               percentile_cont(0.5) within group (order by r.gap_seconds)
+                   filter (where r.gap_seconds > 0)                                                                     as "medianInterval7d",
+               percentile_cont(0.95) within group (order by r.gap_seconds)
+                   filter (where r.gap_seconds > 0)                                                                     as "p95Interval7d",
+               avg(r.speed) filter (where r.speed > 1)                                                                  as "avgSpeedMoving7d",
+               avg(case when coalesce(r.speed, 0) <= 1 then 1.0 else 0.0 end)                                           as "pctStationary7d"
         from devices d
                  left join profiles p on p.profiles_id = d.profiles_id
                  left join recent r on r.device_id = d.devices_id
@@ -1487,6 +1549,20 @@ export async function qryGetLocationInsights(): Promise<InsightsPayload> {
                     s.minBatteryOff24h !== null ? Number(s.minBatteryOff24h) : null,
                 maxGapSeconds:
                     s.maxGapSeconds24h !== null ? Math.round(Number(s.maxGapSeconds24h)) : null,
+                batteryStartOffCharger:
+                    s.batteryStartOff24h !== null ? Number(s.batteryStartOff24h) : null,
+                batteryEndOffCharger:
+                    s.batteryEndOff24h !== null ? Number(s.batteryEndOff24h) : null,
+                pctPingsCharging:
+                    s.pctCharging24h !== null ? Number(s.pctCharging24h) : null,
+                medianIntervalSeconds:
+                    s.medianInterval24h !== null ? Math.round(Number(s.medianInterval24h)) : null,
+                p95IntervalSeconds:
+                    s.p95Interval24h !== null ? Math.round(Number(s.p95Interval24h)) : null,
+                avgSpeedMovingMps:
+                    s.avgSpeedMoving24h !== null ? Number(s.avgSpeedMoving24h) : null,
+                pctStationary:
+                    s.pctStationary24h !== null ? Number(s.pctStationary24h) : null,
             },
             period7d: {
                 pings: Number(s.pings7d ?? 0),
@@ -1497,6 +1573,20 @@ export async function qryGetLocationInsights(): Promise<InsightsPayload> {
                     s.minBatteryOff7d !== null ? Number(s.minBatteryOff7d) : null,
                 maxGapSeconds:
                     s.maxGapSeconds7d !== null ? Math.round(Number(s.maxGapSeconds7d)) : null,
+                batteryStartOffCharger:
+                    s.batteryStartOff7d !== null ? Number(s.batteryStartOff7d) : null,
+                batteryEndOffCharger:
+                    s.batteryEndOff7d !== null ? Number(s.batteryEndOff7d) : null,
+                pctPingsCharging:
+                    s.pctCharging7d !== null ? Number(s.pctCharging7d) : null,
+                medianIntervalSeconds:
+                    s.medianInterval7d !== null ? Math.round(Number(s.medianInterval7d)) : null,
+                p95IntervalSeconds:
+                    s.p95Interval7d !== null ? Math.round(Number(s.p95Interval7d)) : null,
+                avgSpeedMovingMps:
+                    s.avgSpeedMoving7d !== null ? Number(s.avgSpeedMoving7d) : null,
+                pctStationary:
+                    s.pctStationary7d !== null ? Number(s.pctStationary7d) : null,
             },
             hourly,
             // Extrapolate 24h rate → 30-day projection. Rough but useful for
