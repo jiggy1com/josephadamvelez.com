@@ -1,27 +1,37 @@
 'use client';
-import { useMemo } from 'react';
+import { Fragment, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { CircleMarker, MapContainer, Polyline, Popup, TileLayer, useMap } from 'react-leaflet';
+import {
+    CircleMarker,
+    MapContainer,
+    Polyline,
+    Popup,
+    TileLayer,
+    useMap,
+} from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { useEffect } from 'react';
-import type { DeviceHistoryPayload } from '@/utils/adminQueries';
+import type { DeviceHistoryPayload, VisitedPlace } from '@/utils/adminQueries';
 import { resolveProfileColor } from '@/constants/profileColors';
 import { useSession } from '@/hooks/useSession';
+import {
+    analyzeDay,
+    colorForTrip,
+    formatClock,
+    formatDistance,
+    formatDuration,
+    tripDistanceMeters,
+    type DwellSegment,
+    type PlaceVisit,
+    type TripSegment,
+} from '@/utils/mapHistorySegments';
 
 type Props = {
     data: DeviceHistoryPayload;
 };
 
-function formatTime(iso: string | null | undefined): string {
-    if (!iso) return 'unknown';
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return 'unknown';
-    return d.toLocaleTimeString();
-}
-
-// When the data changes, auto-fit the map to the bounding box of the day's
-// pings. Keeps the user oriented as they page through dates.
-function FitToPings({ latlngs }: { latlngs: [number, number][] }) {
+// Auto-fit the map to the bounding box of every ping + every visited place
+// so both the dwell markers and the trip lines land in the initial view.
+function FitToDay({ latlngs }: { latlngs: [number, number][] }) {
     const map = useMap();
     useEffect(() => {
         if (latlngs.length === 0) return;
@@ -34,30 +44,202 @@ function FitToPings({ latlngs }: { latlngs: [number, number][] }) {
     return null;
 }
 
+// Filter a ping list into leaflet-safe tuples. Bad coords upstream shouldn't
+// crash the polyline / marker layers.
+function toLatLngs(
+    pings: { latitude: number; longitude: number }[],
+): [number, number][] {
+    return pings
+        .filter(
+            (p) =>
+                typeof p.latitude === 'number' &&
+                typeof p.longitude === 'number' &&
+                !Number.isNaN(p.latitude) &&
+                !Number.isNaN(p.longitude),
+        )
+        .map((p) => [p.latitude, p.longitude]);
+}
+
+function summarizeVisits(visits: PlaceVisit[]): {
+    firstArrived: string;
+    lastDeparted: string | null;
+    totalMs: number;
+    hasOngoing: boolean;
+} {
+    let firstArrived = visits[0].arrivedAt;
+    let lastDeparted: string | null = null;
+    let totalMs = 0;
+    let hasOngoing = false;
+    for (const v of visits) {
+        if (new Date(v.arrivedAt).getTime() < new Date(firstArrived).getTime()) {
+            firstArrived = v.arrivedAt;
+        }
+        if (v.departedAt === null) {
+            hasOngoing = true;
+        } else if (
+            lastDeparted === null ||
+            new Date(v.departedAt).getTime() > new Date(lastDeparted).getTime()
+        ) {
+            lastDeparted = v.departedAt;
+        }
+        if (v.durationMs !== null) totalMs += v.durationMs;
+    }
+    return { firstArrived, lastDeparted, totalMs, hasOngoing };
+}
+
+function DwellPopup({
+    place,
+    visits,
+}: {
+    place: VisitedPlace;
+    visits: PlaceVisit[];
+}) {
+    const summary = summarizeVisits(visits);
+    return (
+        <div style={{ minWidth: 180 }}>
+            <div style={{ fontWeight: 'bold' }}>📍 {place.name}</div>
+            {visits.length === 1 ? (
+                <div style={{ fontSize: '0.9em', marginTop: 4 }}>
+                    <div>Arrived {formatClock(visits[0].arrivedAt)}</div>
+                    <div>
+                        {visits[0].departedAt
+                            ? `Departed ${formatClock(visits[0].departedAt)}`
+                            : 'Still here'}
+                    </div>
+                    {visits[0].durationMs !== null && (
+                        <div style={{ opacity: 0.75 }}>
+                            {formatDuration(visits[0].durationMs)}
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <>
+                    <div style={{ fontSize: '0.9em', marginTop: 4 }}>
+                        <div>First arrived {formatClock(summary.firstArrived)}</div>
+                        <div>
+                            {summary.hasOngoing
+                                ? 'Still here'
+                                : `Last departed ${formatClock(summary.lastDeparted)}`}
+                        </div>
+                        <div style={{ opacity: 0.75 }}>
+                            {visits.length} visits · {formatDuration(summary.totalMs)} total
+                        </div>
+                    </div>
+                    <ol
+                        style={{
+                            fontSize: '0.8em',
+                            opacity: 0.75,
+                            paddingLeft: 18,
+                            marginTop: 6,
+                            marginBottom: 0,
+                        }}>
+                        {visits.map((v, i) => (
+                            <li key={i}>
+                                {formatClock(v.arrivedAt)} →{' '}
+                                {v.departedAt ? formatClock(v.departedAt) : 'still here'}
+                                {v.durationMs !== null && ` (${formatDuration(v.durationMs)})`}
+                            </li>
+                        ))}
+                    </ol>
+                </>
+            )}
+        </div>
+    );
+}
+
+function TripPopup({
+    trip,
+    tripCount,
+}: {
+    trip: TripSegment;
+    tripCount: number;
+}) {
+    const durationMs =
+        new Date(trip.endedAt).getTime() - new Date(trip.startedAt).getTime();
+    const distanceM = tripDistanceMeters(trip.pings);
+    return (
+        <div style={{ minWidth: 180 }}>
+            <div style={{ fontWeight: 'bold', color: colorForTrip(trip.tripIndex) }}>
+                Trip {trip.tripIndex + 1} of {tripCount}
+            </div>
+            <div style={{ fontSize: '0.9em', marginTop: 4 }}>
+                <div>
+                    From <b>{trip.fromPlaceName ?? 'somewhere'}</b> at{' '}
+                    {formatClock(trip.startedAt)}
+                </div>
+                <div>
+                    To <b>{trip.toPlaceName ?? 'somewhere'}</b> at{' '}
+                    {formatClock(trip.endedAt)}
+                </div>
+                <div style={{ opacity: 0.75, marginTop: 2 }}>
+                    {formatDuration(durationMs)} · {formatDistance(distanceM)} ·{' '}
+                    {trip.pings.length} ping{trip.pings.length === 1 ? '' : 's'}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function TripEndpointPopup({
+    trip,
+    tripCount,
+    role,
+    ping,
+    canAddPlace,
+}: {
+    trip: TripSegment;
+    tripCount: number;
+    role: 'start' | 'end';
+    ping: { latitude: number; longitude: number; deviceTimestamp: string | null; receivedAt: string };
+    canAddPlace: boolean;
+}) {
+    const timeLabel = formatClock(ping.deviceTimestamp ?? ping.receivedAt);
+    return (
+        <div style={{ minWidth: 180 }}>
+            <div style={{ fontWeight: 'bold', color: colorForTrip(trip.tripIndex) }}>
+                {role === 'start' ? 'Trip start' : 'Trip end'} · #{trip.tripIndex + 1} of{' '}
+                {tripCount}
+            </div>
+            <div style={{ fontSize: '0.9em', marginTop: 4 }}>{timeLabel}</div>
+            {canAddPlace && (
+                <div style={{ marginTop: 8 }}>
+                    <Link
+                        href={`/bruh/admin/places/add?lat=${ping.latitude}&lon=${ping.longitude}`}
+                        className={'popup-add-place'}>
+                        + Add known place
+                    </Link>
+                </div>
+            )}
+        </div>
+    );
+}
+
 export function BruhMapHistoryView({ data }: Props) {
     const { user } = useSession();
     const canAddPlace = user?.isAdmin === true;
-    const color = resolveProfileColor(data.device.profileColor);
-    // Only Leaflet-safe tuples pass through — bad coords upstream shouldn't
-    // crash the polyline layer.
-    const latlngs = useMemo<[number, number][]>(
-        () =>
-            data.pings
-                .filter(
-                    (p) =>
-                        typeof p.latitude === 'number' &&
-                        typeof p.longitude === 'number' &&
-                        !Number.isNaN(p.latitude) &&
-                        !Number.isNaN(p.longitude),
-                )
-                .map((p) => [p.latitude, p.longitude]),
+    const profileColor = resolveProfileColor(data.device.profileColor);
+
+    const { segments, visitsByPlaceId, tripCount } = useMemo(
+        () => analyzeDay(data.pings),
         [data.pings],
     );
 
-    // Fallback map center: home coord if no pings today. Keeps Leaflet happy —
-    // it needs a valid center at mount even if we plan to fitBounds later.
+    // Bounding coords: every ping AND every visited place. Visited places
+    // widen the view when the day has short in-and-out visits whose pings
+    // hug the place center — otherwise fitBounds could crop the dwell pin.
+    const boundsLatLngs = useMemo<[number, number][]>(() => {
+        const pings = toLatLngs(data.pings);
+        const places: [number, number][] = data.visitedPlaces.map((p) => [
+            p.latitude,
+            p.longitude,
+        ]);
+        return [...pings, ...places];
+    }, [data.pings, data.visitedPlaces]);
+
+    // Fallback center: home coord if we have nothing to plot. Leaflet needs
+    // a valid center at mount time even when we plan to fitBounds later.
     const fallbackCenter: [number, number] = [28.215702, -82.62009];
-    const initialCenter = latlngs[0] ?? fallbackCenter;
+    const initialCenter = boundsLatLngs[0] ?? fallbackCenter;
 
     return (
         <div style={{ position: 'relative', height: '100%', width: '100%' }}>
@@ -67,68 +249,97 @@ export function BruhMapHistoryView({ data }: Props) {
                 style={{ height: '100%', width: '100%' }}>
                 <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-                <FitToPings latlngs={latlngs} />
+                <FitToDay latlngs={boundsLatLngs} />
 
-                {latlngs.length >= 2 && (
-                    <Polyline
-                        positions={latlngs}
-                        pathOptions={{ color, weight: 4, opacity: 0.8 }}
-                    />
-                )}
+                {segments.map((seg, idx) => {
+                    if (seg.type !== 'trip') return null;
+                    const latlngs = toLatLngs(seg.pings);
+                    if (latlngs.length < 2) return null;
+                    const color = colorForTrip(seg.tripIndex);
+                    return (
+                        <Polyline
+                            key={`trip-line-${idx}`}
+                            positions={latlngs}
+                            pathOptions={{ color, weight: 4, opacity: 0.85 }}>
+                            <Popup>
+                                <TripPopup trip={seg} tripCount={tripCount} />
+                            </Popup>
+                        </Polyline>
+                    );
+                })}
 
-                {data.pings.map((ping, i) => {
-                    // First and last pings get a slightly bigger radius so the day's
-                    // start and end are legible without a legend.
-                    const isEdge = i === 0 || i === data.pings.length - 1;
+                {segments.map((seg, idx) => {
+                    if (seg.type !== 'trip') return null;
+                    const color = colorForTrip(seg.tripIndex);
+                    const first = seg.pings[0];
+                    const last = seg.pings[seg.pings.length - 1];
+                    // Only render an endpoint marker where the trip does NOT
+                    // abut a dwell — otherwise the dwell pin already anchors
+                    // that end of the trip and a second marker is redundant.
+                    return (
+                        <Fragment key={`trip-endpoints-${idx}`}>
+                            {seg.fromPlaceName === null && (
+                                <CircleMarker
+                                    center={[first.latitude, first.longitude]}
+                                    radius={7}
+                                    pathOptions={{
+                                        color: '#111',
+                                        weight: 1,
+                                        fillColor: color,
+                                        fillOpacity: 0.95,
+                                    }}>
+                                    <Popup>
+                                        <TripEndpointPopup
+                                            trip={seg}
+                                            tripCount={tripCount}
+                                            role={'start'}
+                                            ping={first}
+                                            canAddPlace={canAddPlace}
+                                        />
+                                    </Popup>
+                                </CircleMarker>
+                            )}
+                            {seg.toPlaceName === null && (
+                                <CircleMarker
+                                    center={[last.latitude, last.longitude]}
+                                    radius={7}
+                                    pathOptions={{
+                                        color: '#111',
+                                        weight: 1,
+                                        fillColor: color,
+                                        fillOpacity: 0.95,
+                                    }}>
+                                    <Popup>
+                                        <TripEndpointPopup
+                                            trip={seg}
+                                            tripCount={tripCount}
+                                            role={'end'}
+                                            ping={last}
+                                            canAddPlace={canAddPlace}
+                                        />
+                                    </Popup>
+                                </CircleMarker>
+                            )}
+                        </Fragment>
+                    );
+                })}
+
+                {data.visitedPlaces.map((place) => {
+                    const visits = visitsByPlaceId.get(place.placeId) ?? [];
+                    if (visits.length === 0) return null;
                     return (
                         <CircleMarker
-                            key={`${ping.receivedAt}-${i}`}
-                            center={[ping.latitude, ping.longitude]}
-                            radius={isEdge ? 8 : 4}
+                            key={`dwell-${place.placeId}`}
+                            center={[place.latitude, place.longitude]}
+                            radius={11}
                             pathOptions={{
                                 color: '#111',
-                                weight: 1,
-                                fillColor: color,
-                                fillOpacity: 0.9,
+                                weight: 2,
+                                fillColor: profileColor,
+                                fillOpacity: 0.85,
                             }}>
                             <Popup>
-                                <div style={{ minWidth: 160 }}>
-                                    <div style={{ fontWeight: 'bold', color }}>
-                                        {i === 0
-                                            ? 'Start'
-                                            : i === data.pings.length - 1
-                                              ? 'End'
-                                              : `Ping ${i + 1}`}
-                                    </div>
-                                    {ping.placeName && (
-                                        <div style={{ fontSize: '0.9em', fontWeight: 'bold', marginTop: 2 }}>
-                                            📍 {ping.placeName}
-                                        </div>
-                                    )}
-                                    <div style={{ fontSize: '0.9em', opacity: 0.8 }}>
-                                        {formatTime(ping.deviceTimestamp ?? ping.receivedAt)}
-                                    </div>
-                                    {ping.accuracy !== null && (
-                                        <div style={{ fontSize: '0.8em', opacity: 0.6 }}>
-                                            ±{Math.round(ping.accuracy)}m
-                                        </div>
-                                    )}
-                                    {typeof ping.battery === 'number' && ping.battery >= 0 && (
-                                        <div style={{ fontSize: '0.8em', opacity: 0.6 }}>
-                                            🔋 {Math.round(ping.battery)}%
-                                            {ping.charging ? ' ⚡' : ''}
-                                        </div>
-                                    )}
-                                    {canAddPlace && !ping.placeName && (
-                                        <div style={{ marginTop: 8 }}>
-                                            <Link
-                                                href={`/bruh/admin/places/add?lat=${ping.latitude}&lon=${ping.longitude}`}
-                                                className={'popup-add-place'}>
-                                                + Add known place
-                                            </Link>
-                                        </div>
-                                    )}
-                                </div>
+                                <DwellPopup place={place} visits={visits} />
                             </Popup>
                         </CircleMarker>
                     );

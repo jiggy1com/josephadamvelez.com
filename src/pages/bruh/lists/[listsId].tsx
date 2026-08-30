@@ -1,4 +1,4 @@
-import { FormEvent, MouseEvent, useEffect, useState } from 'react';
+import { FormEvent, MouseEvent, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import { Section } from '@/components/section/Section';
 import { Alert, AlertType } from '@/components/alert/Alert';
@@ -149,6 +149,19 @@ export default function BruhListDetail() {
 
     const checkedCount = items.filter((i) => i.checked).length;
 
+    // Sort unchecked first (still-to-do at the top), then checked. Both
+    // groups alphabetical, case-insensitive, so a reused grocery list is
+    // scannable and duplicate-checkable without hunting through insertion
+    // order. Stable within equal names via listItemsId as a tiebreaker.
+    const sortedItems = useMemo(() => {
+        return [...items].sort((a, b) => {
+            if (a.checked !== b.checked) return a.checked ? 1 : -1;
+            const byName = a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+            if (byName !== 0) return byName;
+            return a.listItemsId - b.listItemsId;
+        });
+    }, [items]);
+
     return (
         <>
             <Section id={'bruh-list-header'}>
@@ -195,7 +208,7 @@ export default function BruhListDetail() {
                 </form>
 
                 <ul className={'list-items'}>
-                    {items.map((item) => {
+                    {sortedItems.map((item) => {
                         const isEditing = editingId === item.listItemsId;
                         return (
                             <li
