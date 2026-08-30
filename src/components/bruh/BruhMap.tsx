@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import L from 'leaflet';
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
@@ -66,6 +66,78 @@ function MapCenterer({ target }: { target: [number, number] | null }) {
     return null;
 }
 
+// On first render: ask the browser for its location, then center strictly
+// on that coord and zoom out just enough that every device pin fits.
+// Fallbacks in order of preference:
+//   1. browser coord + device pins → setView on browser, zoom-to-fit both
+//   2. browser coord, no devices → setView on browser at street zoom
+//   3. no browser coord, have devices → fit bounds around devices (legacy)
+//   4. no browser coord, no devices → leave HOME center from MapContainer
+// Runs once — guarded so hiding a device or any later state change never
+// yanks the viewport away from wherever the user has panned.
+function InitialViewport({ latlngs }: { latlngs: [number, number][] }) {
+    const map = useMap();
+    const hasFit = useRef(false);
+    // Keep the latest ping array reachable from the (mount-only) effect
+    // without re-running it — a re-fit would fight sidebar center-on.
+    const latestLatLngs = useRef(latlngs);
+    latestLatLngs.current = latlngs;
+
+    useEffect(() => {
+        const fitDevicesOnly = () => {
+            if (hasFit.current) return;
+            const coords = latestLatLngs.current;
+            if (coords.length === 0) return;
+            hasFit.current = true;
+            if (coords.length === 1) {
+                map.setView(coords[0], 16);
+                return;
+            }
+            map.fitBounds(coords, { padding: [40, 40] });
+        };
+
+        const centerOnBrowser = (lat: number, lon: number) => {
+            if (hasFit.current) return;
+            hasFit.current = true;
+            const browser: [number, number] = [lat, lon];
+            const coords = latestLatLngs.current;
+            if (coords.length === 0) {
+                map.setView(browser, 15);
+                return;
+            }
+            const bounds = L.latLngBounds([browser, ...coords]);
+            // getBoundsZoom returns the max zoom at which bounds still fits.
+            // inside=false so we err toward "everything visible" instead of
+            // "bounds fully contained" (matters at edge cases).
+            const fitZoom = map.getBoundsZoom(bounds, false, L.point(40, 40));
+            map.setView(browser, fitZoom);
+        };
+
+        if (typeof navigator === 'undefined' || !navigator.geolocation) {
+            fitDevicesOnly();
+            return;
+        }
+
+        // Guard: if the browser sits on the permission prompt too long we
+        // still want a useful viewport instead of "stuck on HOME".
+        const timeoutId = window.setTimeout(fitDevicesOnly, 5000);
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                window.clearTimeout(timeoutId);
+                centerOnBrowser(pos.coords.latitude, pos.coords.longitude);
+            },
+            () => {
+                window.clearTimeout(timeoutId);
+                fitDevicesOnly();
+            },
+            { timeout: 5000, maximumAge: 60_000 },
+        );
+
+        return () => window.clearTimeout(timeoutId);
+    }, [map]);
+    return null;
+}
+
 export function BruhMap({ getLastKnownDeviceLocation }: BruhMapProps) {
     const HOME_LOCATION: [number, number] = [28.215702, -82.62009] as [number, number];
     const { user } = useSession();
@@ -99,6 +171,17 @@ export function BruhMap({ getLastKnownDeviceLocation }: BruhMapProps) {
     const visibleDevices = useMemo(
         () => getLastKnownDeviceLocation.filter((d) => !hiddenDeviceIds.has(d.deviceId)),
         [getLastKnownDeviceLocation, hiddenDeviceIds],
+    );
+
+    // Coords used by the mount-only viewport fit. Uses all-known-devices
+    // rather than visibleDevices because on mount nothing is hidden yet,
+    // and this stays right even if we ever pre-hide devices from URL params.
+    const deviceLatLngs = useMemo<[number, number][]>(
+        () =>
+            getLastKnownDeviceLocation
+                .filter((d) => d.location)
+                .map((d) => [d.location!.latitude, d.location!.longitude]),
+        [getLastKnownDeviceLocation],
     );
 
     return (
@@ -153,6 +236,7 @@ export function BruhMap({ getLastKnownDeviceLocation }: BruhMapProps) {
                                 </>
                             )}
 
+                            <InitialViewport latlngs={deviceLatLngs} />
                             <MapCenterer target={centerRequest.target} key={centerRequest.seq} />
 
                             {visibleDevices.map((device) => {
