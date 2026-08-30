@@ -924,8 +924,22 @@ export type DeviceHistoryPing = {
     accuracy: number | null;
     battery: number | null;
     charging: boolean | null;
-    // Nearest known place covering this ping's coord, if any.
+    // Nearest known place covering this ping's coord, if any. `placeId` is
+    // the segmentation key — string-based `placeName` would false-match if
+    // two places ever share a name.
+    placeId: number | null;
     placeName: string | null;
+};
+
+// De-duped subset of known_locations that were actually visited on `date`.
+// Rendered as dwell markers by the map view — anchored to canonical place
+// coords rather than any single ping's coord so the pin doesn't drift
+// day-to-day with GPS jitter.
+export type VisitedPlace = {
+    placeId: number;
+    name: string;
+    latitude: number;
+    longitude: number;
 };
 
 export type DeviceHistoryPayload = {
@@ -942,6 +956,7 @@ export type DeviceHistoryPayload = {
     // Timezone that "date" was interpreted in.
     timezone: string;
     pings: DeviceHistoryPing[];
+    visitedPlaces: VisitedPlace[];
 };
 
 // Same TZ constant used by insights — one place to change if we ever go multi-timezone.
@@ -976,22 +991,38 @@ export async function qryGetDeviceHistory(
         where l.device_id = ${deviceId}
           and (coalesce(l.device_timestamp, l.received_at) at time zone ${HISTORY_TZ})::date = ${date}::date
         order by coalesce(l.device_timestamp, l.received_at) asc
-    `) as Omit<DeviceHistoryPing, 'placeName'>[];
+    `) as Omit<DeviceHistoryPing, 'placeName' | 'placeId'>[];
 
     // Same trick as the current-location query — enrich in-process against the
     // full known_locations list. Trivial cost at family scale even for a
     // ~400-ping day.
     const places = await qryGetKnownLocationsList();
-    const pings: DeviceHistoryPing[] = rawPings.map((p) => ({
-        ...p,
-        placeName: nearestPlace(p.latitude, p.longitude, places)?.name ?? null,
-    }));
+    const visitedIds = new Set<number>();
+    const pings: DeviceHistoryPing[] = rawPings.map((p) => {
+        const match = nearestPlace(p.latitude, p.longitude, places);
+        if (match) visitedIds.add(match.knownLocationsId);
+        return {
+            ...p,
+            placeId: match?.knownLocationsId ?? null,
+            placeName: match?.name ?? null,
+        };
+    });
+
+    const visitedPlaces: VisitedPlace[] = places
+        .filter((pl) => visitedIds.has(pl.knownLocationsId))
+        .map((pl) => ({
+            placeId: pl.knownLocationsId,
+            name: pl.name,
+            latitude: pl.latitude,
+            longitude: pl.longitude,
+        }));
 
     return {
         device: deviceRows[0],
         date,
         timezone: HISTORY_TZ,
         pings,
+        visitedPlaces,
     };
 }
 
