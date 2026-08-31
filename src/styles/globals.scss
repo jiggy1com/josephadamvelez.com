@@ -1,3 +1,4 @@
+@use './calendar';
 @import '@/styles/_mixins.scss';
 @import '@/styles/_tokens.scss';
 
@@ -729,6 +730,7 @@ body {
 		.group-24h {
 			border-left: 2px solid var(--color-border-subtle);
 		}
+
 		.group-7d {
 			border-left: 2px solid var(--color-border-subtle);
 		}
@@ -753,17 +755,20 @@ body {
 			align-items: center;
 			font-size: 0.9em;
 		}
+
 		.activity-sort-toggle {
 			margin-left: auto;
 			font-size: 0.8em;
 			padding: 6px 14px;
 		}
 	}
+
 	.activity-feed {
 		display: flex;
 		flex-direction: column;
 		gap: 24px;
 	}
+
 	.activity-day {
 		.activity-day-heading {
 			font-size: 1em;
@@ -772,6 +777,7 @@ body {
 			text-transform: uppercase;
 			letter-spacing: 0.05em;
 		}
+
 		.activity-list {
 			list-style: none;
 			padding: 0;
@@ -780,6 +786,7 @@ body {
 			flex-direction: column;
 			gap: 4px;
 		}
+
 		.activity-item {
 			display: flex;
 			align-items: center;
@@ -794,14 +801,17 @@ body {
 				height: 12px;
 				flex-shrink: 0;
 			}
+
 			.activity-text {
 				flex-grow: 1;
 				min-width: 0;
 			}
+
 			.activity-arrow {
 				font-weight: bold;
 				opacity: 0.7;
 			}
+
 			.activity-time {
 				font-size: 0.85em;
 				opacity: 0.6;
@@ -822,9 +832,11 @@ body {
 			grid-template-columns: 1fr;
 		}
 	}
+
 	.place-form-fields {
 		min-width: 0;
 	}
+
 	.place-form-map {
 		min-height: 400px;
 		border: 1px solid var(--color-border-subtle);
