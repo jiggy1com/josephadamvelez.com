@@ -1,0 +1,24 @@
+// calendar day
+.fc .fc-daygrid-day.fc-day-today {
+	background-color: var(--color-primary);
+	color: var(--white);
+	border-radius: 4px;
+}
+
+.fc-daygrid-day-number {
+	background-color: var(--black);
+	border-radius: 4px;
+}
+
+// event
+.fc-event {
+	padding: 5px 10px;
+	border: solid 1px #ccc;
+	border-radius: 10px;
+	margin-bottom: 5px;
+
+	.fc-event-title {
+		font-size: 1.3em;
+		font-size: 1.3em;
+	}
+}
