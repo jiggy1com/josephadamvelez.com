@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Section } from '@/components/section/Section';
 import { Alert, AlertType } from '@/components/alert/Alert';
 import { SegmentedControl } from '@/components/segmented-control/SegmentedControl';
-import type { InsightsPayload } from '@/utils/adminQueries';
+import type { InsightsAppStatus, InsightsDevice, InsightsPayload } from '@/utils/adminQueries';
 import { resolveProfileColor } from '@/constants/profileColors';
 
 type HourlyView = '24h' | '7d';
@@ -34,6 +34,32 @@ function fmtInterval(s: number | null | undefined): string {
     if (s === null || s === undefined) return '—';
     if (s < 60) return `${Math.round(s)}s`;
     return `${(s / 60).toFixed(1)}m`;
+}
+
+function fmtMeters(m: number | null | undefined): string {
+    if (m === null || m === undefined) return '—';
+    return m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${m} m`;
+}
+
+function fmtAgo(iso: string | null): string {
+    if (!iso) return 'never';
+    const sec = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+    if (sec < 3600) return `${Math.round(sec / 60)}m ago`;
+    if (sec < 86400) return `${(sec / 3600).toFixed(1)}h ago`;
+    return `${Math.round(sec / 86400)}d ago`;
+}
+
+const APP_STATUS_LABEL: Record<InsightsAppStatus, string> = {
+    unknown: 'Unknown — no ping since version tracking began',
+    'no-build': 'Old build — predates build reporting, update it',
+    behind: 'Behind — newer build seen on this platform',
+    current: 'Current (newest build seen)',
+};
+
+function fmtApp(d: InsightsDevice): string {
+    const { appVersion, appBuild } = d.app;
+    if (!appVersion) return '—';
+    return appBuild ? `${appVersion} (${appBuild})` : appVersion;
 }
 
 // Battery start/end are point-in-time readings while off charger — if the phone
@@ -111,7 +137,44 @@ export default function BruhAdminDevicesInsights() {
                             {new Date(payload.generatedAt).toLocaleString()}
                         </p>
 
-                        <h2 style={{ marginTop: 20, marginBottom: 10 }}>Summary</h2>
+                        <h2 style={{ marginTop: 20, marginBottom: 10 }}>App &amp; OS</h2>
+                        <div style={{ overflowX: 'auto' }}>
+                            <table className={'insights-table'}>
+                                <thead>
+                                    <tr>
+                                        <th>Device</th>
+                                        <th>App (build)</th>
+                                        <th>OS</th>
+                                        <th>Model</th>
+                                        <th>Last ping</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {payload.devices.map((d) => (
+                                        <tr key={d.devicesId}>
+                                            <td>
+                                                <span
+                                                    className={'profile-dot'}
+                                                    style={{
+                                                        backgroundColor: resolveProfileColor(d.profileColor),
+                                                        marginRight: 6,
+                                                    }}
+                                                />
+                                                {d.profileName ?? '(unassigned)'} · {d.deviceName ?? '—'}
+                                            </td>
+                                            <td>{fmtApp(d)}</td>
+                                            <td>{d.app.systemVersion ?? '—'}</td>
+                                            <td>{d.app.deviceModel ?? '—'}</td>
+                                            <td>{fmtAgo(d.app.lastPingAt)}</td>
+                                            <td>{APP_STATUS_LABEL[d.app.status]}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h2 style={{ marginTop: 30, marginBottom: 10 }}>Summary</h2>
                         <div style={{ overflowX: 'auto' }}>
                             <table className={'insights-table'}>
                                 <thead>
@@ -208,6 +271,83 @@ export default function BruhAdminDevicesInsights() {
                                             </tr>
                                         );
                                     })}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h2 style={{ marginTop: 30, marginBottom: 4 }}>Trip fidelity (moving only)</h2>
+                        <p style={{ opacity: 0.7, marginBottom: 10, fontSize: '0.9em' }}>
+                            Consecutive pings ≤ 30 min apart at &gt; 3 m/s, measured from capture time.
+                            Big steps are the straight lines on the history map.
+                        </p>
+                        <div style={{ overflowX: 'auto' }}>
+                            <table className={'insights-table'}>
+                                <thead>
+                                    <tr>
+                                        <th rowSpan={2}>Device</th>
+                                        <th colSpan={6} className={'group-24h'}>Last 24h</th>
+                                        <th colSpan={6} className={'group-7d'}>Last 7 days</th>
+                                    </tr>
+                                    <tr>
+                                        {(['24h', '7d'] as const).flatMap((w) =>
+                                            ['Steps', 'Med. int.', 'p95 int.', 'Med. step', 'p95 step', '> 1 km'].map(
+                                                (label) => (
+                                                    <th key={`${w}-${label}`} className={`group-${w}`}>
+                                                        {label}
+                                                    </th>
+                                                ),
+                                            ),
+                                        )}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {payload.devices.map((d) => (
+                                        <tr key={d.devicesId}>
+                                            <td>
+                                                {d.profileName ?? '(unassigned)'} · {d.deviceName ?? '—'}
+                                            </td>
+                                            {[d.period24h.moving, d.period7d.moving].flatMap((m, i) => [
+                                                <td key={`${i}-n`}>{fmtInt(m.steps)}</td>,
+                                                <td key={`${i}-mi`}>{fmtInterval(m.medianIntervalSeconds)}</td>,
+                                                <td key={`${i}-pi`}>{fmtInterval(m.p95IntervalSeconds)}</td>,
+                                                <td key={`${i}-ms`}>{fmtMeters(m.medianStepM)}</td>,
+                                                <td key={`${i}-ps`}>{fmtMeters(m.p95StepM)}</td>,
+                                                <td key={`${i}-o`}>{fmtPct(m.pctStepsOver1km)}</td>,
+                                            ])}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h2 style={{ marginTop: 30, marginBottom: 4 }}>Ping sources</h2>
+                        <p style={{ opacity: 0.7, marginBottom: 10, fontSize: '0.9em' }}>
+                            What triggered each ping, as 24h / 7d counts. &quot;unknown&quot; is a build that
+                            predates source reporting.
+                        </p>
+                        <div style={{ overflowX: 'auto' }}>
+                            <table className={'insights-table'}>
+                                <thead>
+                                    <tr>
+                                        <th>Device</th>
+                                        <th>Sources (24h / 7d)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {payload.devices.map((d) => (
+                                        <tr key={d.devicesId}>
+                                            <td>
+                                                {d.profileName ?? '(unassigned)'} · {d.deviceName ?? '—'}
+                                            </td>
+                                            <td>
+                                                {d.sources.length === 0
+                                                    ? '—'
+                                                    : d.sources
+                                                          .map((x) => `${x.source} ${x.pings24h} / ${x.pings7d}`)
+                                                          .join(' · ')}
+                                            </td>
+                                        </tr>
+                                    ))}
                                 </tbody>
                             </table>
                         </div>
