@@ -8,6 +8,13 @@ import {
     qryUpsertDevice,
 } from '@/utils/adminQueries';
 
+// Free-text client fields are capped so a misbehaving client can't bloat rows.
+function cleanText(value: unknown, max = 64): string | null {
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim().slice(0, max);
+    return trimmed.length > 0 ? trimmed : null;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -19,6 +26,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ success: false, error: 'device_id is required' });
     }
 
+    const appVersion = cleanText(body.app_version);
+    const appBuild = cleanText(body.app_build);
+    const source = cleanText(body.source, 32);
+
     try {
         // Register (or refresh metadata for) the device before recording its location.
         // Mobile app is a passive beacon — it never calls a separate "register" endpoint.
@@ -26,6 +37,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             deviceId,
             typeof body.device_name === 'string' ? body.device_name : null,
             typeof body.platform === 'string' ? body.platform : null,
+            {
+                appVersion,
+                appBuild,
+                systemVersion: cleanText(body.system_version),
+                deviceModel: cleanText(body.device_model),
+            },
         );
 
         // Snapshot the last-known coord BEFORE inserting the new ping — needed
@@ -36,7 +53,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const hasCoord = Number.isFinite(lat) && Number.isFinite(lon);
         const previous = hasCoord ? await qryGetLastLocationForDevice(deviceId) : null;
 
-        await qryAddDeviceLocation(body);
+        await qryAddDeviceLocation({ ...body, app_version: appVersion, app_build: appBuild, source });
 
         // Compute geofence arrivals/departures. Only meaningful when we have
         // a real new coord — pings missing lat/lon (shouldn't happen in practice

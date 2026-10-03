@@ -1030,17 +1030,34 @@ export async function qryGetDeviceHistory(
 // register itself separately. We upsert so first-ping creates the device row,
 // and later pings refresh name/platform if they changed (e.g. user renamed
 // their phone in iOS Settings). profiles_id is left alone once set.
+export type DeviceClientInfo = {
+    appVersion: string | null;
+    appBuild: string | null;
+    systemVersion: string | null;
+    deviceModel: string | null;
+};
+
 export async function qryUpsertDevice(
     devicesId: string,
     name: string | null,
     platform: string | null,
+    client: DeviceClientInfo,
 ): Promise<void> {
+    // app_build is deliberately NOT coalesced: when a ping reports a version but
+    // no build, the app predates build reporting and the stale value would lie.
     await sql`
-        insert into devices (devices_id, name, platform)
-        values (${devicesId}, ${name}, ${platform})
+        insert into devices (devices_id, name, platform, app_version, app_build, system_version, device_model)
+        values (${devicesId}, ${name}, ${platform}, ${client.appVersion}, ${client.appBuild},
+                ${client.systemVersion}, ${client.deviceModel})
         on conflict (devices_id) do update
-            set name     = coalesce(excluded.name, devices.name),
-                platform = coalesce(excluded.platform, devices.platform)
+            set name           = coalesce(excluded.name, devices.name),
+                platform       = coalesce(excluded.platform, devices.platform),
+                app_version    = coalesce(excluded.app_version, devices.app_version),
+                app_build      = case when excluded.app_version is not null
+                                      then excluded.app_build
+                                      else devices.app_build end,
+                system_version = coalesce(excluded.system_version, devices.system_version),
+                device_model   = coalesce(excluded.device_model, devices.device_model)
     `;
 }
 
@@ -1348,6 +1365,46 @@ export function nearestPlace(
 // If the admin moves timezones, this becomes a config value.
 const INSIGHTS_TZ = 'America/New_York';
 
+// Trip-fidelity stats over consecutive pings that look like travel: gap between
+// the two pings ≤ 30 min and implied speed > 3 m/s. Straight lines on the history
+// map come from large steps here. Measured from capture time, not receive time.
+export type InsightsMovingStats = {
+    steps: number;
+    medianIntervalSeconds: number | null;
+    p95IntervalSeconds: number | null;
+    // Straight-line distance between consecutive moving pings.
+    medianStepM: number | null;
+    p95StepM: number | null;
+    // Share of moving steps longer than 1 km (0..1) — the "cuts across roads" number.
+    pctStepsOver1km: number | null;
+};
+
+export type InsightsSourceBucket = {
+    // What triggered the ping on the device (e.g. slc, standard, foreground,
+    // background, oneshot). "unknown" = row from a build that predates the field.
+    source: string;
+    pings24h: number;
+    pings7d: number;
+};
+
+// Why the app version could be wrong or missing is spelled out per status so
+// the admin page and a pasted JSON read the same way.
+//  unknown  — no ping since the server started recording version info
+//  no-build — version reported but no build number: the app predates build reporting
+//  behind   — build is lower than the newest build seen on the same platform
+//  current  — matches the newest build seen on the same platform
+export type InsightsAppStatus = 'unknown' | 'no-build' | 'behind' | 'current';
+
+export type InsightsAppInfo = {
+    appVersion: string | null;
+    appBuild: string | null;
+    systemVersion: string | null;
+    deviceModel: string | null;
+    // Capture time of the most recent ping ever recorded for the device.
+    lastPingAt: string | null;
+    status: InsightsAppStatus;
+};
+
 export type InsightsPeriod = {
     // Total rows inserted in the period
     pings: number;
@@ -1383,6 +1440,7 @@ export type InsightsPeriod = {
     // Share of pings with speed ≤ 1 m/s (0..1). High values on a moving device
     // usually means the sensor never got a fresh velocity reading.
     pctStationary: number | null;
+    moving: InsightsMovingStats;
 };
 
 export type InsightsHourBucket = {
@@ -1409,6 +1467,8 @@ export type InsightsDevice = {
     hourly: InsightsHourBucket[];
     // Extrapolation of last-24h rate → rows if this pace held for 30 days.
     projectedRowsPerMonth: number;
+    app: InsightsAppInfo;
+    sources: InsightsSourceBucket[];
 };
 
 export type InsightsPayload = {
@@ -1436,6 +1496,12 @@ type SummaryRow = {
     p95Interval24h: number | null;
     avgSpeedMoving24h: number | null;
     pctStationary24h: number | null;
+    movingSteps24h: number;
+    movingMedInt24h: number | null;
+    movingP95Int24h: number | null;
+    movingMedStep24h: number | null;
+    movingP95Step24h: number | null;
+    movingPctOver1km24h: number | null;
     pings7d: number;
     distinctCells10m7d: number;
     distinctCells100m7d: number;
@@ -1449,6 +1515,28 @@ type SummaryRow = {
     p95Interval7d: number | null;
     avgSpeedMoving7d: number | null;
     pctStationary7d: number | null;
+    movingSteps7d: number;
+    movingMedInt7d: number | null;
+    movingP95Int7d: number | null;
+    movingMedStep7d: number | null;
+    movingP95Step7d: number | null;
+    movingPctOver1km7d: number | null;
+};
+
+type AppInfoRow = {
+    devicesId: string;
+    appVersion: string | null;
+    appBuild: string | null;
+    systemVersion: string | null;
+    deviceModel: string | null;
+    lastPingAt: string | null;
+};
+
+type SourceRow = {
+    devicesId: string;
+    source: string;
+    pings24h: number;
+    pings7d: number;
 };
 
 type HourlyRow = {
@@ -1466,48 +1554,70 @@ export async function qryGetLocationInsights(): Promise<InsightsPayload> {
     // slice of the locations table (indexed by received_at).
     // Gaps are computed in a subquery via LAG then MAX'd here.
     const summary = (await sql`
-        with recent as (
-            select l.*,
-                   extract(epoch from
-                       l.received_at
-                       - lag(l.received_at) over (partition by l.device_id order by l.received_at)
-                   ) as gap_seconds
+        with base as (
+            -- ts = capture time. An offline-queue flush shares one received_at, which
+            -- collapses intervals to 0 — so every interval/window below uses ts.
+            -- 8 days of received_at leaves room for pings captured late in the window.
+            select l.*, coalesce(l.device_timestamp, l.received_at) as ts
             from locations l
-            where l.received_at > now() - interval '7 days'
+            where l.received_at > now() - interval '8 days'
+        ),
+        stepped as (
+            select b.*,
+                   extract(epoch from b.ts - lag(b.ts) over w) as gap_seconds,
+                   2 * 6371000 * asin(least(1, sqrt(
+                       power(sin(radians(b.latitude::float8 - (lag(b.latitude) over w)::float8) / 2), 2)
+                       + cos(radians((lag(b.latitude) over w)::float8)) * cos(radians(b.latitude::float8))
+                         * power(sin(radians(b.longitude::float8 - (lag(b.longitude) over w)::float8) / 2), 2)
+                   ))) as step_m
+            from base b
+            where b.ts > now() - interval '7 days'
+            window w as (partition by b.device_id order by b.ts)
+        ),
+        recent as (
+            select s.*,
+                   (s.gap_seconds between 1 and 1800 and s.step_m / nullif(s.gap_seconds, 0) > 3) as moving_step
+            from stepped s
         )
         select d.devices_id                                             as "devicesId",
                d.name                                                    as "deviceName",
                d.platform                                                as platform,
                p.name                                                    as "profileName",
                p.color                                                   as "profileColor",
-               count(*) filter (where r.received_at > now() - interval '24 hours')                                    as "pings24h",
+               count(*) filter (where r.ts > now() - interval '24 hours')                                    as "pings24h",
                count(distinct (round(r.latitude::numeric, 4) || ',' || round(r.longitude::numeric, 4)))
-                   filter (where r.received_at > now() - interval '24 hours')                                          as "distinctCells10m24h",
+                   filter (where r.ts > now() - interval '24 hours')                                          as "distinctCells10m24h",
                count(distinct (round(r.latitude::numeric, 3) || ',' || round(r.longitude::numeric, 3)))
-                   filter (where r.received_at > now() - interval '24 hours')                                          as "distinctCells100m24h",
+                   filter (where r.ts > now() - interval '24 hours')                                          as "distinctCells100m24h",
                percentile_cont(0.5) within group (order by r.horizontal_accuracy)
-                   filter (where r.received_at > now() - interval '24 hours' and r.horizontal_accuracy > 0)            as "medianAccuracy24h",
+                   filter (where r.ts > now() - interval '24 hours' and r.horizontal_accuracy > 0)            as "medianAccuracy24h",
                min(r.battery_level)
-                   filter (where r.received_at > now() - interval '24 hours' and not r.is_charging and r.battery_level >= 0) as "minBatteryOff24h",
+                   filter (where r.ts > now() - interval '24 hours' and not r.is_charging and r.battery_level >= 0) as "minBatteryOff24h",
                max(r.gap_seconds)
-                   filter (where r.received_at > now() - interval '24 hours')                                          as "maxGapSeconds24h",
-               (array_agg(r.battery_level order by r.received_at asc)
-                   filter (where r.received_at > now() - interval '24 hours' and not r.is_charging and r.battery_level >= 0)
+                   filter (where r.ts > now() - interval '24 hours')                                          as "maxGapSeconds24h",
+               (array_agg(r.battery_level order by r.ts asc)
+                   filter (where r.ts > now() - interval '24 hours' and not r.is_charging and r.battery_level >= 0)
                )[1]                                                                                                    as "batteryStartOff24h",
-               (array_agg(r.battery_level order by r.received_at desc)
-                   filter (where r.received_at > now() - interval '24 hours' and not r.is_charging and r.battery_level >= 0)
+               (array_agg(r.battery_level order by r.ts desc)
+                   filter (where r.ts > now() - interval '24 hours' and not r.is_charging and r.battery_level >= 0)
                )[1]                                                                                                    as "batteryEndOff24h",
                avg(case when r.is_charging then 1.0 else 0.0 end)
-                   filter (where r.received_at > now() - interval '24 hours')                                          as "pctCharging24h",
+                   filter (where r.ts > now() - interval '24 hours')                                          as "pctCharging24h",
                percentile_cont(0.5) within group (order by r.gap_seconds)
-                   filter (where r.received_at > now() - interval '24 hours' and r.gap_seconds > 0)                    as "medianInterval24h",
+                   filter (where r.ts > now() - interval '24 hours' and r.gap_seconds > 0)                    as "medianInterval24h",
                percentile_cont(0.95) within group (order by r.gap_seconds)
-                   filter (where r.received_at > now() - interval '24 hours' and r.gap_seconds > 0)                    as "p95Interval24h",
+                   filter (where r.ts > now() - interval '24 hours' and r.gap_seconds > 0)                    as "p95Interval24h",
                avg(r.speed)
-                   filter (where r.received_at > now() - interval '24 hours' and r.speed > 1)                          as "avgSpeedMoving24h",
+                   filter (where r.ts > now() - interval '24 hours' and r.speed > 1)                          as "avgSpeedMoving24h",
                avg(case when coalesce(r.speed, 0) <= 1 then 1.0 else 0.0 end)
-                   filter (where r.received_at > now() - interval '24 hours')                                          as "pctStationary24h",
-               count(*)                                                                                                as "pings7d",
+                   filter (where r.ts > now() - interval '24 hours')                                          as "pctStationary24h",
+               count(*) filter (where r.moving_step and r.ts > now() - interval '24 hours')::int                                                       as "movingSteps24h",
+               percentile_cont(0.5) within group (order by r.gap_seconds) filter (where r.moving_step and r.ts > now() - interval '24 hours')            as "movingMedInt24h",
+               percentile_cont(0.95) within group (order by r.gap_seconds) filter (where r.moving_step and r.ts > now() - interval '24 hours')           as "movingP95Int24h",
+               percentile_cont(0.5) within group (order by r.step_m) filter (where r.moving_step and r.ts > now() - interval '24 hours')                 as "movingMedStep24h",
+               percentile_cont(0.95) within group (order by r.step_m) filter (where r.moving_step and r.ts > now() - interval '24 hours')                as "movingP95Step24h",
+               avg(case when r.step_m > 1000 then 1.0 else 0.0 end) filter (where r.moving_step and r.ts > now() - interval '24 hours')                  as "movingPctOver1km24h",
+               count(r.device_id)                                                                                      as "pings7d",
                count(distinct (round(r.latitude::numeric, 4) || ',' || round(r.longitude::numeric, 4)))                as "distinctCells10m7d",
                count(distinct (round(r.latitude::numeric, 3) || ',' || round(r.longitude::numeric, 3)))                as "distinctCells100m7d",
                percentile_cont(0.5) within group (order by r.horizontal_accuracy)
@@ -1515,19 +1625,25 @@ export async function qryGetLocationInsights(): Promise<InsightsPayload> {
                min(r.battery_level)
                    filter (where not r.is_charging and r.battery_level >= 0)                                            as "minBatteryOff7d",
                max(r.gap_seconds)                                                                                       as "maxGapSeconds7d",
-               (array_agg(r.battery_level order by r.received_at asc)
+               (array_agg(r.battery_level order by r.ts asc)
                    filter (where not r.is_charging and r.battery_level >= 0)
                )[1]                                                                                                     as "batteryStartOff7d",
-               (array_agg(r.battery_level order by r.received_at desc)
+               (array_agg(r.battery_level order by r.ts desc)
                    filter (where not r.is_charging and r.battery_level >= 0)
                )[1]                                                                                                     as "batteryEndOff7d",
-               avg(case when r.is_charging then 1.0 else 0.0 end)                                                       as "pctCharging7d",
+               avg(case when r.is_charging then 1.0 else 0.0 end) filter (where r.device_id is not null)                as "pctCharging7d",
                percentile_cont(0.5) within group (order by r.gap_seconds)
                    filter (where r.gap_seconds > 0)                                                                     as "medianInterval7d",
                percentile_cont(0.95) within group (order by r.gap_seconds)
                    filter (where r.gap_seconds > 0)                                                                     as "p95Interval7d",
                avg(r.speed) filter (where r.speed > 1)                                                                  as "avgSpeedMoving7d",
-               avg(case when coalesce(r.speed, 0) <= 1 then 1.0 else 0.0 end)                                           as "pctStationary7d"
+               avg(case when coalesce(r.speed, 0) <= 1 then 1.0 else 0.0 end) filter (where r.device_id is not null)    as "pctStationary7d",
+               count(*) filter (where r.moving_step)::int                                                               as "movingSteps7d",
+               percentile_cont(0.5) within group (order by r.gap_seconds) filter (where r.moving_step)                  as "movingMedInt7d",
+               percentile_cont(0.95) within group (order by r.gap_seconds) filter (where r.moving_step)                 as "movingP95Int7d",
+               percentile_cont(0.5) within group (order by r.step_m) filter (where r.moving_step)                       as "movingMedStep7d",
+               percentile_cont(0.95) within group (order by r.step_m) filter (where r.moving_step)                      as "movingP95Step7d",
+               avg(case when r.step_m > 1000 then 1.0 else 0.0 end) filter (where r.moving_step)                        as "movingPctOver1km7d"
         from devices d
                  left join profiles p on p.profiles_id = d.profiles_id
                  left join recent r on r.device_id = d.devices_id
@@ -1539,15 +1655,63 @@ export async function qryGetLocationInsights(): Promise<InsightsPayload> {
     // Both windows computed in one scan via FILTER — 24h subset uses the same rows.
     const hourly = (await sql`
         select d.devices_id                                                                       as "devicesId",
-               extract(hour from l.received_at at time zone ${INSIGHTS_TZ})::int                 as hour,
-               count(*) filter (where l.received_at > now() - interval '24 hours')::int          as "pings24h",
+               extract(hour from coalesce(l.device_timestamp, l.received_at) at time zone ${INSIGHTS_TZ})::int as hour,
+               count(*) filter (where coalesce(l.device_timestamp, l.received_at) > now() - interval '24 hours')::int as "pings24h",
                count(*)::int                                                                      as "pings7d"
         from locations l
                  inner join devices d on d.devices_id = l.device_id
-        where l.received_at > now() - interval '7 days'
+        where l.received_at > now() - interval '8 days'
+          and coalesce(l.device_timestamp, l.received_at) > now() - interval '7 days'
         group by d.devices_id, hour
         order by d.devices_id, hour
     `) as HourlyRow[];
+
+    // Device/app info lives on the devices row (refreshed on every ping); last
+    // ping is the capture time of the newest location, any age.
+    const appRows = (await sql`
+        select d.devices_id      as "devicesId",
+               d.app_version     as "appVersion",
+               d.app_build       as "appBuild",
+               d.system_version  as "systemVersion",
+               d.device_model    as "deviceModel",
+               lp.last_ping_at   as "lastPingAt"
+        from devices d
+                 left join lateral (
+            select max(coalesce(l.device_timestamp, l.received_at)) as last_ping_at
+            from locations l
+            where l.device_id = d.devices_id
+            ) lp on true
+    `) as AppInfoRow[];
+
+    const sourceRows = (await sql`
+        select l.device_id                                                                              as "devicesId",
+               coalesce(l.source, 'unknown')                                                            as source,
+               count(*) filter (where coalesce(l.device_timestamp, l.received_at) > now() - interval '24 hours')::int as "pings24h",
+               count(*)::int                                                                            as "pings7d"
+        from locations l
+        where l.received_at > now() - interval '8 days'
+          and coalesce(l.device_timestamp, l.received_at) > now() - interval '7 days'
+        group by l.device_id, coalesce(l.source, 'unknown')
+        order by l.device_id, "pings7d" desc
+    `) as SourceRow[];
+
+    const appByDevice = new Map(appRows.map((r) => [r.devicesId, r] as const));
+    const sourcesByDevice = new Map<string, InsightsSourceBucket[]>();
+    for (const r of sourceRows) {
+        const list = sourcesByDevice.get(r.devicesId) ?? [];
+        list.push({ source: r.source, pings24h: Number(r.pings24h), pings7d: Number(r.pings7d) });
+        sourcesByDevice.set(r.devicesId, list);
+    }
+
+    // Newest numeric build seen per platform — the yardstick for "behind".
+    const platformKey = (p: string | null) => (p ?? '').toLowerCase();
+    const maxBuildByPlatform = new Map<string, number>();
+    for (const d of summary) {
+        const build = Number(appByDevice.get(d.devicesId)?.appBuild);
+        if (!Number.isFinite(build)) continue;
+        const key = platformKey(d.platform);
+        maxBuildByPlatform.set(key, Math.max(maxBuildByPlatform.get(key) ?? -Infinity, build));
+    }
 
     // Group hourly by device for O(1) lookup while building the payload.
     const hourlyByDevice = new Map<string, HourlyRow[]>();
@@ -1570,6 +1734,15 @@ export async function qryGetLocationInsights(): Promise<InsightsPayload> {
                 avgPings7d: Math.round((Number(row?.pings7d ?? 0) / 7) * 100) / 100,
             };
         });
+
+        const appInfo = appByDevice.get(s.devicesId);
+        const build = Number(appInfo?.appBuild);
+        const newest = maxBuildByPlatform.get(platformKey(s.platform));
+        let appStatus: InsightsAppStatus;
+        if (!appInfo?.appVersion) appStatus = 'unknown';
+        else if (!appInfo.appBuild) appStatus = 'no-build';
+        else if (Number.isFinite(build) && newest !== undefined && build < newest) appStatus = 'behind';
+        else appStatus = 'current';
 
         return {
             devicesId: s.devicesId,
@@ -1600,6 +1773,19 @@ export async function qryGetLocationInsights(): Promise<InsightsPayload> {
                     s.avgSpeedMoving24h !== null ? Number(s.avgSpeedMoving24h) : null,
                 pctStationary:
                     s.pctStationary24h !== null ? Number(s.pctStationary24h) : null,
+                moving: {
+                    steps: Number(s.movingSteps24h ?? 0),
+                    medianIntervalSeconds:
+                        s.movingMedInt24h !== null ? Math.round(Number(s.movingMedInt24h)) : null,
+                    p95IntervalSeconds:
+                        s.movingP95Int24h !== null ? Math.round(Number(s.movingP95Int24h)) : null,
+                    medianStepM:
+                        s.movingMedStep24h !== null ? Math.round(Number(s.movingMedStep24h)) : null,
+                    p95StepM:
+                        s.movingP95Step24h !== null ? Math.round(Number(s.movingP95Step24h)) : null,
+                    pctStepsOver1km:
+                        s.movingPctOver1km24h !== null ? Number(s.movingPctOver1km24h) : null,
+                },
             },
             period7d: {
                 pings: Number(s.pings7d ?? 0),
@@ -1624,11 +1810,33 @@ export async function qryGetLocationInsights(): Promise<InsightsPayload> {
                     s.avgSpeedMoving7d !== null ? Number(s.avgSpeedMoving7d) : null,
                 pctStationary:
                     s.pctStationary7d !== null ? Number(s.pctStationary7d) : null,
+                moving: {
+                    steps: Number(s.movingSteps7d ?? 0),
+                    medianIntervalSeconds:
+                        s.movingMedInt7d !== null ? Math.round(Number(s.movingMedInt7d)) : null,
+                    p95IntervalSeconds:
+                        s.movingP95Int7d !== null ? Math.round(Number(s.movingP95Int7d)) : null,
+                    medianStepM:
+                        s.movingMedStep7d !== null ? Math.round(Number(s.movingMedStep7d)) : null,
+                    p95StepM:
+                        s.movingP95Step7d !== null ? Math.round(Number(s.movingP95Step7d)) : null,
+                    pctStepsOver1km:
+                        s.movingPctOver1km7d !== null ? Number(s.movingPctOver1km7d) : null,
+                },
             },
             hourly,
             // Extrapolate 24h rate → 30-day projection. Rough but useful for
             // sizing the retention decision.
             projectedRowsPerMonth: Number(s.pings24h ?? 0) * 30,
+            app: {
+                appVersion: appInfo?.appVersion ?? null,
+                appBuild: appInfo?.appBuild ?? null,
+                systemVersion: appInfo?.systemVersion ?? null,
+                deviceModel: appInfo?.deviceModel ?? null,
+                lastPingAt: appInfo?.lastPingAt ? new Date(appInfo.lastPingAt).toISOString() : null,
+                status: appStatus,
+            },
+            sources: sourcesByDevice.get(s.devicesId) ?? [],
         };
     });
 
@@ -1655,6 +1863,9 @@ export type locationType = {
     device_name?: string;
     system_version?: string;
     device_timestamp?: Date;
+    app_version?: string | null;
+    app_build?: string | null;
+    source?: string | null;
 };
 
 export async function qryAddDeviceLocation({
@@ -1673,6 +1884,9 @@ export async function qryAddDeviceLocation({
     device_name,
     system_version,
     device_timestamp,
+    app_version,
+    app_build,
+    source,
 }: locationType) {
     await sql`
         insert into locations (device_id,
@@ -1689,7 +1903,10 @@ export async function qryAddDeviceLocation({
                                device_model,
                                device_name,
                                system_version,
-                               device_timestamp)
+                               device_timestamp,
+                               app_version,
+                               app_build,
+                               source)
         values (${device_id},
                 ${latitude},
                 ${longitude},
@@ -1704,6 +1921,9 @@ export async function qryAddDeviceLocation({
                 ${device_model},
                 ${device_name},
                 ${system_version},
-                ${device_timestamp})
+                ${device_timestamp},
+                ${app_version ?? null},
+                ${app_build ?? null},
+                ${source ?? null})
     `;
 }
