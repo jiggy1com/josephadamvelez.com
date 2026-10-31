@@ -1,0 +1,42 @@
+// Mobile-first. Buttons keep the global .button look; only sizing is tweaked here.
+.card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    max-width: 420px;
+}
+
+.status {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.state {
+    font-size: 2.2em;
+    font-weight: bold;
+    line-height: 1.1;
+    color: var(--color-primary);
+}
+
+// Open is the state worth noticing.
+.stateOpen {
+    color: var(--color-error);
+}
+
+.caption {
+    opacity: 0.7;
+    font-size: 0.9em;
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+
+    button {
+        padding: 12px 28px;
+    }
+}

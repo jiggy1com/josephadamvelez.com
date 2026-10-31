@@ -267,7 +267,13 @@ export default function BruhAdminDevicesInsights() {
                                                 <td>{fmtGap(d.period7d.maxGapSeconds)}</td>
                                                 <td>{fmtDrain(d.period7d.batteryStartOffCharger, d.period7d.batteryEndOffCharger)}</td>
                                                 <td>{fmtPct(d.period7d.pctPingsCharging)}</td>
-                                                <td>{fmtInt(d.projectedRowsPerMonth)}</td>
+                                                <td>
+                                                    {fmtInt(
+                                                        hourlyView === '24h'
+                                                            ? d.period24h.pings * 30
+                                                            : Math.round((d.period7d.pings / 7) * 30),
+                                                    )}
+                                                </td>
                                             </tr>
                                         );
                                     })}

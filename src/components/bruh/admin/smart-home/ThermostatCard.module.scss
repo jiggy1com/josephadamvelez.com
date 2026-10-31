@@ -1,0 +1,68 @@
+// Mobile-first. Buttons keep the global .button look; only sizing is tweaked here.
+.card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    max-width: 420px;
+}
+
+.current,
+.target {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.currentTemp {
+    font-size: 1.6em;
+    font-weight: bold;
+}
+
+.targetTemp {
+    font-size: 3.5em;
+    font-weight: bold;
+    line-height: 1;
+    color: var(--color-primary);
+}
+
+.caption {
+    opacity: 0.7;
+    font-size: 0.9em;
+}
+
+.setpoint {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.round {
+    width: 64px;
+    height: 64px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 2em;
+    line-height: 1;
+
+    &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+}
+
+.modes {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+
+    button {
+        padding: 10px 24px;
+    }
+}
+
+.edit {
+    padding: 8px 20px;
+    font-size: 0.8em;
+}
