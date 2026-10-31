@@ -5,6 +5,7 @@ import {
     qryGetKnownLocationsList,
     qryGetLastLocationForDevice,
     qryInsertLocationEvent,
+    qryLocationExists,
     qryUpsertDevice,
 } from '@/utils/adminQueries';
 
@@ -13,6 +14,17 @@ function cleanText(value: unknown, max = 64): string | null {
     if (typeof value !== 'string') return null;
     const trimmed = value.trim().slice(0, max);
     return trimmed.length > 0 ? trimmed : null;
+}
+
+// Clients have sent "ios"/"iOS"/"android"/"Android"; store one canonical form
+// so grouping and display don't split a platform across casings.
+function normalizePlatform(value: unknown): string | null {
+    const text = cleanText(value, 32);
+    if (!text) return null;
+    const lower = text.toLowerCase();
+    if (lower === 'ios') return 'iOS';
+    if (lower === 'android') return 'Android';
+    return text;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -29,6 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const appVersion = cleanText(body.app_version);
     const appBuild = cleanText(body.app_build);
     const source = cleanText(body.source, 32);
+    const platform = normalizePlatform(body.platform);
 
     try {
         // Register (or refresh metadata for) the device before recording its location.
@@ -36,7 +49,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         await qryUpsertDevice(
             deviceId,
             typeof body.device_name === 'string' ? body.device_name : null,
-            typeof body.platform === 'string' ? body.platform : null,
+            platform,
             {
                 appVersion,
                 appBuild,
@@ -53,7 +66,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const hasCoord = Number.isFinite(lat) && Number.isFinite(lon);
         const previous = hasCoord ? await qryGetLastLocationForDevice(deviceId) : null;
 
-        await qryAddDeviceLocation({ ...body, app_version: appVersion, app_build: appBuild, source });
+        // Offline-queue retries and overlapping streams can deliver the same fix
+        // twice; the capture time identifies it. Skipping here also avoids a
+        // duplicate geofence arrival/departure event.
+        const capturedAt =
+            typeof body.device_timestamp === 'string' && !Number.isNaN(Date.parse(body.device_timestamp))
+                ? body.device_timestamp
+                : null;
+        if (capturedAt && (await qryLocationExists(deviceId, capturedAt))) {
+            return res.status(200).json({ success: true, duplicate: true });
+        }
+
+        await qryAddDeviceLocation({
+            ...body,
+            platform: platform ?? undefined,
+            app_version: appVersion,
+            app_build: appBuild,
+            source,
+        });
 
         // Compute geofence arrivals/departures. Only meaningful when we have
         // a real new coord — pings missing lat/lon (shouldn't happen in practice
