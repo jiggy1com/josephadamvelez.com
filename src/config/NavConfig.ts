@@ -72,6 +72,11 @@ export const bruhNavItems = [
         active: false,
     },
     {
+        name: 'Smart Home',
+        target: '/bruh/smart-home',
+        active: false,
+    },
+    {
         // Admin-only shortcut — only rendered for isAdmin sessions. Lets admins
         // jump into the admin area from their phone without typing the URL.
         name: 'Admin',
