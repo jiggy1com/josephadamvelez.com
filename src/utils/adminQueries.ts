@@ -872,6 +872,8 @@ export type DeviceRow = {
     profilesId: number | null;
     profileName: string | null;
     lastSeen: string | null;
+    // Hidden devices (simulators, test phones) are excluded from insights.
+    hidden: boolean;
 };
 
 export async function qryListDevicesWithProfile(): Promise<DeviceRow[]> {
@@ -881,7 +883,8 @@ export async function qryListDevicesWithProfile(): Promise<DeviceRow[]> {
                d.platform    as platform,
                d.profiles_id as "profilesId",
                p.name        as "profileName",
-               l.last_seen   as "lastSeen"
+               l.last_seen   as "lastSeen",
+               coalesce(d.hidden, false) as hidden
         from devices d
                  left join profiles p on p.profiles_id = d.profiles_id
                  left join lateral (
@@ -891,6 +894,25 @@ export async function qryListDevicesWithProfile(): Promise<DeviceRow[]> {
             ) l on true
         order by lower(d.name) nulls last, d.devices_id
     `) as DeviceRow[];
+}
+
+export async function qrySetDeviceHidden(devicesId: string, hidden: boolean): Promise<void> {
+    await sql`
+        update devices
+        set hidden = ${hidden}
+        where devices_id = ${devicesId}
+    `;
+}
+
+export async function qryLocationExists(deviceId: string, deviceTimestamp: string): Promise<boolean> {
+    const rows = await sql`
+        select 1
+        from locations
+        where device_id = ${deviceId}
+          and device_timestamp = ${deviceTimestamp}::timestamptz
+        limit 1
+    `;
+    return rows.length > 0;
 }
 
 export async function qryAssignDeviceToProfile(
@@ -980,7 +1002,8 @@ export async function qryGetDeviceHistory(
     if (deviceRows.length === 0) return null;
 
     const rawPings = (await sql`
-        select l.latitude,
+        select distinct on (coalesce(l.device_timestamp, l.received_at))
+               l.latitude,
                l.longitude,
                l.received_at        as "receivedAt",
                l.device_timestamp   as "deviceTimestamp",
@@ -990,7 +1013,7 @@ export async function qryGetDeviceHistory(
         from locations l
         where l.device_id = ${deviceId}
           and (coalesce(l.device_timestamp, l.received_at) at time zone ${HISTORY_TZ})::date = ${date}::date
-        order by coalesce(l.device_timestamp, l.received_at) asc
+        order by coalesce(l.device_timestamp, l.received_at) asc, l.received_at asc
     `) as Omit<DeviceHistoryPing, 'placeName' | 'placeId'>[];
 
     // Same trick as the current-location query — enrich in-process against the
@@ -1558,9 +1581,12 @@ export async function qryGetLocationInsights(): Promise<InsightsPayload> {
             -- ts = capture time. An offline-queue flush shares one received_at, which
             -- collapses intervals to 0 — so every interval/window below uses ts.
             -- 8 days of received_at leaves room for pings captured late in the window.
-            select l.*, coalesce(l.device_timestamp, l.received_at) as ts
+            -- distinct on drops exact-duplicate pings (same device + capture time).
+            select distinct on (l.device_id, coalesce(l.device_timestamp, l.received_at))
+                   l.*, coalesce(l.device_timestamp, l.received_at) as ts
             from locations l
             where l.received_at > now() - interval '8 days'
+            order by l.device_id, coalesce(l.device_timestamp, l.received_at), l.received_at
         ),
         stepped as (
             select b.*,
@@ -1647,6 +1673,7 @@ export async function qryGetLocationInsights(): Promise<InsightsPayload> {
         from devices d
                  left join profiles p on p.profiles_id = d.profiles_id
                  left join recent r on r.device_id = d.devices_id
+        where not coalesce(d.hidden, false)
         group by d.devices_id, d.name, d.platform, p.name, p.color
         order by lower(coalesce(p.name, d.name, '')), d.devices_id
     `) as SummaryRow[];
@@ -1913,8 +1940,8 @@ export async function qryAddDeviceLocation({
                 ${altitude},
                 ${horizontal_accuracy},
                 ${vertical_accuracy},
-                ${speed},
-                ${course},
+                ${speed ?? null},
+                ${course ?? null},
                 ${battery_level},
                 ${is_charging},
                 ${platform},
