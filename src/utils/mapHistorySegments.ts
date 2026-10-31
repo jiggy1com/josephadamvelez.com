@@ -23,6 +23,10 @@ export type TripSegment = {
     // and the "Trip N of M" label.
     tripIndex: number;
     pings: DeviceHistoryPing[];
+    // `pings` plus the neighboring dwell's nearest ping on each side (when no
+    // coverage gap separates them). Only the drawn line uses this, so it
+    // reaches the place pin instead of stopping at the first ping outside it.
+    linePings: DeviceHistoryPing[];
     startedAt: string;
     endedAt: string;
     // Trip start / end place, when the trip abuts a dwell. Populated during
@@ -105,6 +109,7 @@ export function analyzeDay(pings: DeviceHistoryPing[]): DaySegmentation {
                 type: 'trip',
                 tripIndex: tripIdx++,
                 pings: run,
+                linePings: run,
                 startedAt: timestampIso(first),
                 endedAt: timestampIso(last),
                 fromPlaceName: null,
@@ -121,6 +126,19 @@ export function analyzeDay(pings: DeviceHistoryPing[]): DaySegmentation {
         const next = i < segments.length - 1 ? segments[i + 1] : null;
         if (prev && prev.type === 'dwell') s.fromPlaceName = prev.placeName;
         if (next && next.type === 'dwell') s.toPlaceName = next.placeName;
+
+        const head = s.pings[0];
+        const tail = s.pings[s.pings.length - 1];
+        const line = [...s.pings];
+        if (prev && prev.type === 'dwell') {
+            const anchor = prev.pings[prev.pings.length - 1];
+            if (timestampMs(head) - timestampMs(anchor) <= GAP_MS) line.unshift(anchor);
+        }
+        if (next && next.type === 'dwell') {
+            const anchor = next.pings[0];
+            if (timestampMs(anchor) - timestampMs(tail) <= GAP_MS) line.push(anchor);
+        }
+        s.linePings = line;
     }
 
     // Third pass: aggregate visits per place for the dwell-marker popup.
