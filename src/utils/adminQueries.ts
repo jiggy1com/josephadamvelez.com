@@ -1852,9 +1852,10 @@ export async function qryGetLocationInsights(): Promise<InsightsPayload> {
                 },
             },
             hourly,
-            // Extrapolate 24h rate → 30-day projection. Rough but useful for
-            // sizing the retention decision.
-            projectedRowsPerMonth: Number(s.pings24h ?? 0) * 30,
+            // Extrapolate the 7-day daily average → 30-day projection. One light
+            // or heavy day swings a 24h-based number too much. The insights page
+            // recomputes this from the 24h/7d toggle; this is the 7d figure.
+            projectedRowsPerMonth: Math.round((Number(s.pings7d ?? 0) / 7) * 30),
             app: {
                 appVersion: appInfo?.appVersion ?? null,
                 appBuild: appInfo?.appBuild ?? null,
