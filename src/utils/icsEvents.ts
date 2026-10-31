@@ -31,6 +31,18 @@ type NodeIcalEvent = {
     };
 };
 
+// All-day dates from node-ical are local-midnight Dates. toISOString() would shift
+// them to UTC and the browser would render them on the previous day, so emit a
+// plain YYYY-MM-DD string using local getters instead.
+function toLocalDateString(d: Date): string {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function formatEventDate(d: Date, allDay: boolean): string {
+    return allDay ? toLocalDateString(d) : d.toISOString();
+}
+
 // Fetch and parse a single ICS feed, returning events that overlap [from, to].
 // Recurring events (rrule) are expanded within the window; single events are filtered.
 export async function fetchIcsFeedEvents(
@@ -69,12 +81,19 @@ export async function fetchIcsFeedEvents(
                     evt.end && evt.start
                         ? evt.end.getTime() - evt.start.getTime()
                         : 0;
-                const end = duration ? new Date(start.getTime() + duration) : undefined;
+                let end: Date | undefined;
+                if (duration && isAllDay) {
+                    // Add whole days via setDate so DST shifts don't push the end off midnight.
+                    end = new Date(start);
+                    end.setDate(end.getDate() + Math.round(duration / 86400000));
+                } else if (duration) {
+                    end = new Date(start.getTime() + duration);
+                }
                 results.push({
                     id: `ics-${feed.icsFeedId}-${uid}-${start.toISOString()}`,
                     title,
-                    start: start.toISOString(),
-                    end: end?.toISOString(),
+                    start: formatEventDate(start, isAllDay),
+                    end: end ? formatEventDate(end, isAllDay) : undefined,
                     allDay: isAllDay,
                     backgroundColor: color,
                     borderColor: color,
@@ -96,8 +115,8 @@ export async function fetchIcsFeedEvents(
             results.push({
                 id: `ics-${feed.icsFeedId}-${uid}`,
                 title,
-                start: start.toISOString(),
-                end: evt.end?.toISOString(),
+                start: formatEventDate(start, isAllDay),
+                end: evt.end ? formatEventDate(evt.end, isAllDay) : undefined,
                 allDay: isAllDay,
                 backgroundColor: color,
                 borderColor: color,
