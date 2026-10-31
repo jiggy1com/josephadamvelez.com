@@ -156,7 +156,7 @@ function TripPopup({
 }) {
     const durationMs =
         new Date(trip.endedAt).getTime() - new Date(trip.startedAt).getTime();
-    const distanceM = tripDistanceMeters(trip.pings);
+    const distanceM = tripDistanceMeters(trip.linePings);
     return (
         <div style={{ minWidth: 180 }}>
             <div style={{ fontWeight: 'bold', color: colorForTrip(trip.tripIndex) }}>
@@ -253,7 +253,7 @@ export function BruhMapHistoryView({ data }: Props) {
 
                 {segments.map((seg, idx) => {
                     if (seg.type !== 'trip') return null;
-                    const latlngs = toLatLngs(seg.pings);
+                    const latlngs = toLatLngs(seg.linePings);
                     if (latlngs.length < 2) return null;
                     const color = colorForTrip(seg.tripIndex);
                     return (
