@@ -76,6 +76,34 @@ export default function BruhAdminDevicesList() {
         }
     };
 
+    const setHidden = async (devicesId: string, hidden: boolean) => {
+        setSavingId(devicesId);
+        const prev = devices;
+        setDevices((ds) => ds.map((d) => (d.devicesId === devicesId ? { ...d, hidden } : d)));
+        try {
+            const res = await fetch('/api/bruh/admin/devices/hide', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ devicesId, hidden }),
+            });
+            const json = await res.json();
+            if (!json.success) {
+                setDevices(prev);
+                setAlert({ success: false, message: json.error ?? 'Failed to update' });
+            } else {
+                setAlert({
+                    success: true,
+                    message: hidden ? 'Hidden from insights' : 'Shown in insights',
+                });
+            }
+        } catch (e) {
+            setDevices(prev);
+            setAlert({ success: false, message: e instanceof Error ? e.message : String(e) });
+        } finally {
+            setSavingId(null);
+        }
+    };
+
     return (
         <>
             <Section id={'bruh-admin-devices-list-header'} className={'admin-section'}>
@@ -103,6 +131,7 @@ export default function BruhAdminDevicesList() {
                                     <th>Platform</th>
                                     <th>Last seen</th>
                                     <th>Assigned to</th>
+                                    <th>Hide from insights</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -136,6 +165,16 @@ export default function BruhAdminDevicesList() {
                                                     </option>
                                                 ))}
                                             </select>
+                                        </td>
+                                        <td>
+                                            <input
+                                                type={'checkbox'}
+                                                checked={d.hidden}
+                                                disabled={savingId === d.devicesId}
+                                                onChange={(e) =>
+                                                    void setHidden(d.devicesId, e.target.checked)
+                                                }
+                                            />
                                         </td>
                                     </tr>
                                 ))}
