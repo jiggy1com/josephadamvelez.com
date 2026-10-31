@@ -1,0 +1,14 @@
+# Home Assistant for the Bruh Smart Home page (proof of concept).
+# Run from this directory:  docker compose up -d
+# UI: http://localhost  (host port 80 -> HA's 8123)
+services:
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: bruh-homeassistant
+    restart: unless-stopped
+    environment:
+      TZ: America/New_York
+    ports:
+      - "80:8123"
+    volumes:
+      - ./config:/config

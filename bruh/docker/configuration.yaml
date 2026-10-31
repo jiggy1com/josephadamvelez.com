@@ -1,0 +1,15 @@
+# Seed config copied into ./config by setup.sh (only if none exists yet).
+default_config:
+
+homeassistant:
+  unit_system: us_customary
+  temperature_unit: F
+  time_zone: America/New_York
+
+# Bruh calls HA straight from the browser, so HA must allow those origins.
+http:
+  cors_allowed_origins:
+    - http://localhost:3000
+    - http://127.0.0.1:3000
+    - https://josephadamvelez.com
+    - https://www.josephadamvelez.com
